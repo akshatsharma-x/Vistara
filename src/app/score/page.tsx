@@ -915,8 +915,13 @@ export default function ScorePage({
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
+  // A repeated ?id= arrives as an array and an empty one as "": take the first
+  // value, and treat blank as no id. Reading only plain strings sent both to the
+  // default applicant with no notice, and "" printed "matches the id  in".
   const raw = searchParams.id;
-  const requestedId = typeof raw === "string" ? raw : undefined;
+  const first = Array.isArray(raw) ? raw[0] : raw;
+  const requestedId =
+    typeof first === "string" && first.trim() !== "" ? first.trim() : undefined;
   const requested =
     requestedId === undefined ? undefined : getDemoCustomer(requestedId);
   const profile = requested ?? pickDefaultProfile();
