@@ -1,0 +1,20 @@
+{
+  "extends": ["next/core-web-vitals", "next/typescript"],
+  "rules": {
+    "no-console": "warn",
+    "@typescript-eslint/no-unused-vars": "error"
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/lib/scoring.test.ts",
+        "src/lib/synthetic-data.ts",
+        "scripts/**/*.ts",
+        "scripts/**/*.mjs"
+      ],
+      "rules": {
+        "no-console": "off"
+      }
+    }
+  ]
+}
