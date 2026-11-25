@@ -493,6 +493,25 @@ test("4. a farmer's harvest gaps are excluded, not charged", () => {
     laundered.consistencyIndex < 100,
     `a serial absentee was laundered to ${fmt(laundered.consistencyIndex)}`,
   );
+
+  // And it can never cost points. Five skipped months on a 30-day rhythm is
+  // more long gaps than the budget forgives; measured around the median of what
+  // remains, the survivors spread wider than the plain measure, and an eligible
+  // farmer used to score below a salaried worker with identical dates.
+  const skipDates = [utc("2025-03-03")];
+  for (const gap of [31, 61, 30, 62, 30, 61, 31, 60, 30, 31, 61, 30]) {
+    skipDates.push(
+      new Date(skipDates[skipDates.length - 1].getTime() + gap * 86_400_000),
+    );
+  }
+  const skipper = streamOf("upi_recurring", skipDates);
+  const eligible = computeMetrics(skipper, { seasonalityEligible: true });
+  const ineligible = computeMetrics(skipper, { seasonalityEligible: false });
+  check(
+    eligible.consistencyIndex >= ineligible.consistencyIndex,
+    `seasonal eligibility lowered an index: ${fmt(eligible.consistencyIndex)} ` +
+      `vs ${fmt(ineligible.consistencyIndex)} for the same dates`,
+  );
   note(
     `harvest gap: farmer ${fmt(farmer.consistencyIndex)} (= clean rhythm) vs ` +
       `non-farmer ${fmt(other.consistencyIndex)}; profile ` +

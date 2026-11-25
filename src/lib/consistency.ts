@@ -417,6 +417,30 @@ export function computeMetrics(
     expectedIntervalDays >= MIN_SEASONAL_CADENCE_DAYS
       ? seasonalGapIndices(allGaps, timestamps)
       : [];
+
+  const adjusted = metricsOverGaps(stream, allGaps, excluded);
+  if (excluded.length === 0) return adjusted;
+
+  // AN EXCEPTION THAT CAN ONLY FORGIVE. At most MAX_SEASONAL_EXCLUSIONS gaps are
+  // set aside, so a stream with more long gaps than that keeps the rest — and
+  // measured around the median of what remains, they can spread WIDER than the
+  // plain measure. An eligible farmer then scored below a salaried worker with
+  // the very same dates (698 against 724 on a hand-written five-skip history).
+  // Applied only where it helps, eligibility can never cost a point.
+  const plain = metricsOverGaps(stream, allGaps, []);
+  return plain.consistencyIndex > adjusted.consistencyIndex ? plain : adjusted;
+}
+
+/**
+ * The metrics for one stream once `excluded` gaps have been set aside — the
+ * whole measurement after the guard and the seasonal decision.
+ */
+function metricsOverGaps(
+  stream: BehaviorStream,
+  allGaps: number[],
+  excluded: number[],
+): ConsistencyMetrics {
+  const { source, timestamps, expectedIntervalDays } = stream;
   const gaps = allGaps.filter((_, i) => !excluded.includes(i));
   const seasonalityAdjusted = excluded.length > 0;
 
