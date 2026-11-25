@@ -404,7 +404,7 @@ export const RAMP = [
 export const CHART_INK = {
   primary: "#E8E8F0",
   secondary: "#A9A9BE",
-  muted: "#6B6B80",
+  muted: "#8A8AA0",
   gridline: "#1E1E2E",
   axis: "#2A2A3D",
   surface: "#13131A",

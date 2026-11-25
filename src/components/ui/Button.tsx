@@ -49,7 +49,7 @@ const SIZES: Record<ButtonSize, string> = {
 
 const VARIANTS: Record<ButtonVariant, string> = {
   primary:
-    "bg-vistara-accent text-white hover:bg-ramp-300 active:bg-ramp-500 disabled:hover:bg-vistara-accent",
+    "bg-vistara-accent text-white hover:bg-ramp-500 active:bg-ramp-600 disabled:hover:bg-vistara-accent",
   secondary:
     "border border-vistara-border bg-vistara-surface text-vistara-text hover:border-vistara-accent/40 hover:bg-vistara-border/45",
   ghost:

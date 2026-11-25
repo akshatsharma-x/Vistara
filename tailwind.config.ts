@@ -14,7 +14,7 @@ const config: Config = {
           amber: "#F5A623",
           red: "#FF4D6D",
           text: "#E8E8F0",
-          muted: "#6B6B80",
+          muted: "#8A8AA0",
         },
         // Single-hue ordinal ramp derived from vistara-accent.
         // Validated with dataviz validate_palette.js --ordinal --mode dark
