@@ -32,6 +32,7 @@ import {
   SCORE_MIN,
   SEASONAL_WINDOWS,
 } from "@/lib/constants";
+import { isSeasonalOccupation } from "@/lib/consistency";
 import { DEMO_CUSTOMERS } from "@/lib/synthetic-data";
 import { formatINR, pct } from "@/lib/format";
 import type { BehaviorSource, Occupation, TemporalProfile } from "@/lib/types";
@@ -494,8 +495,10 @@ export default function ApplyPage() {
       : Math.abs(matched.customer.monthlyIncome - income);
   const targetHref = `/score?id=${matched.customer.id}`;
 
+  // Asked of the engine, as /score does, so the review step and the scorecard
+  // cannot disagree about whether the exception could apply.
   const seasonal =
-    identity.occupation !== "" && OCCUPATION_META[identity.occupation].seasonal;
+    identity.occupation !== "" && isSeasonalOccupation(identity.occupation);
 
   /* --- navigation ------------------------------------------------ */
 
@@ -950,12 +953,14 @@ export default function ApplyPage() {
                       <span className="font-medium text-vistara-text">
                         {sharedSources.length} of {BEHAVIOR_ORDER.length}
                       </span>{" "}
-                      streams. Data completeness will read{" "}
+                      streams. A live file built from them would read{" "}
                       {pct(
                         (sharedSources.length / BEHAVIOR_ORDER.length) * 100,
                       )}{" "}
-                      on the scorecard, printed beside the score so nobody
-                      mistakes a sparse file for a complete one.
+                      complete, printed beside the score so nobody mistakes a
+                      sparse file for a complete one. This prototype scores the
+                      matched sample history instead, so its scorecard shows
+                      that history&rsquo;s own coverage.
                     </p>
                   ) : (
                     <p className="text-vistara-red">

@@ -355,15 +355,33 @@ export const MIN_RETAINED_GAPS = 3;
  * Occupation labels
  * ------------------------------------------------------------------ */
 
+/**
+ * `seasonal` is read off SEASONAL_OCCUPATIONS, the list the engine's
+ * isSeasonalOccupation uses, rather than written out a second time: written out,
+ * it said false for small_merchant while the engine forgave small merchants'
+ * festival gaps, and /apply told them they were not eligible.
+ */
+const seasonalTrade = (occupation: Occupation): boolean =>
+  SEASONAL_OCCUPATIONS.includes(occupation);
+
 export const OCCUPATION_META: Record<
   Occupation,
   { label: string; seasonal: boolean }
 > = {
-  gig_worker: { label: "Gig worker", seasonal: false },
-  small_merchant: { label: "Small merchant", seasonal: false },
-  salaried_informal: { label: "Salaried (informal)", seasonal: false },
-  farmer: { label: "Farmer", seasonal: true },
-  self_employed: { label: "Self-employed", seasonal: false },
+  gig_worker: { label: "Gig worker", seasonal: seasonalTrade("gig_worker") },
+  small_merchant: {
+    label: "Small merchant",
+    seasonal: seasonalTrade("small_merchant"),
+  },
+  salaried_informal: {
+    label: "Salaried (informal)",
+    seasonal: seasonalTrade("salaried_informal"),
+  },
+  farmer: { label: "Farmer", seasonal: seasonalTrade("farmer") },
+  self_employed: {
+    label: "Self-employed",
+    seasonal: seasonalTrade("self_employed"),
+  },
 };
 
 /* ------------------------------------------------------------------ *

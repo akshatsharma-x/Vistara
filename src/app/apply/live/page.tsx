@@ -121,11 +121,8 @@ const OCCUPATION_HINT: Record<Occupation, string> = {
 
 /**
  * Eligibility for the seasonal exception is read from SEASONAL_OCCUPATIONS —
- * the same list `isSeasonalOccupation` reads inside the engine — and NOT from
- * `OCCUPATION_META[...].seasonal`, which says `false` for small_merchant and so
- * disagrees with the engine. See the note in the handover; /apply currently
- * trusts that flag and tells small merchants they are ineligible when they are
- * not.
+ * the same list `isSeasonalOccupation` reads inside the engine, and the list
+ * OCCUPATION_META's `seasonal` flag is now derived from.
  */
 function seasonallyEligible(occupation: Occupation): boolean {
   return SEASONAL_OCCUPATIONS.indexOf(occupation) !== -1;
@@ -1433,8 +1430,7 @@ export default function ApplyLivePage() {
   /**
    * Eligibility for the seasonal exception, read off the occupation chosen in
    * Step 1 and checked against SEASONAL_OCCUPATIONS — the list the engine
-   * itself reads. See `seasonallyEligible`: OCCUPATION_META's own `seasonal`
-   * flag disagrees with the engine for small_merchant.
+   * itself reads. See `seasonallyEligible`.
    */
   const seasonalApplicant =
     profile.occupation !== "" && seasonallyEligible(profile.occupation);
