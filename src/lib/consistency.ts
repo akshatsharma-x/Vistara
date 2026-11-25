@@ -597,12 +597,12 @@ export function computeAllMetrics(
  * The central-tendency term is the GEOMETRIC mean, not the arithmetic one,
  * because the arithmetic mean lets one perfect domain buy off four broken ones:
  * [100, 20, 20, 20, 20] averages 36, which overstates a customer with exactly
- * one habit. The geometric mean of the same set is 31 and collapses toward zero
+ * one habit. The geometric mean of the same set is 27.6 and collapses toward zero
  * as any single domain does — it cannot be bought with excellence in one place.
  *
  * A dispersion penalty is then subtracted so that being EVENLY consistent is
  * explicitly rewarded: five indices of 60 return 60, while [100, 20, 20, 20,
- * 20] returns about 14. Consistency in one domain can be coincidence;
+ * 20] returns about 17. Consistency in one domain can be coincidence;
  * consistency across unrelated domains is character.
  */
 export function computeCrossDomainConsistency(

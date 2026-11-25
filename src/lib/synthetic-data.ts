@@ -31,6 +31,7 @@ import {
   OBSERVATION_DAYS,
   SEASONAL_MONTHS,
   SEASONAL_OCCUPATIONS,
+  TIER_THRESHOLDS,
 } from "@/lib/constants";
 import {
   REFERENCE_DATE,
@@ -629,7 +630,11 @@ export function generateBehaviorStream(
 
   // Exhausted the budget: fall back to a walk with no misses and no long gaps,
   // which cannot come up short. Reachable only for an Avoider on the slowest
-  // cadence; here so the function has no failure mode at all.
+  // cadence; here so the function has no failure mode at all. A draw that is
+  // long enough but failed the sigma or cadence check on every attempt is NOT
+  // replaced — the last attempt ships as drawn — so those two checks are a
+  // strong preference, not a guarantee; a small share of Avoider streams end
+  // outside the MEAN_DRIFT band.
   if (timestamps.length < MIN_EVENTS_TO_SCORE) {
     const rng = createRng(hashSeed(`${seed}:${source}:fallback`));
     const plainOptions: StreamOptions = { ...options, plain: true };
@@ -993,7 +998,7 @@ export const DEMO_SPECS: DemoSpec[] = [
     incomeDayOfMonth: 20,
     utilityDayOfMonth: 27,
     targetScore: 548,
-    note: "The hard case: a farmer whose harvest gaps ARE forgiven and who is still an Avoider on what remains. The seasonal exception has to be capable of returning a low score, or it is just a discount. He is also the THIN_FILE-by-SCORE case, and the only one: four of five signals observed, so nothing about his file is thin, and he lands at 548 against a band boundary of 550. The tier label alone would call him unscoreable; the scorecard has to read dataCompleteness separately to say what is actually true, which is that he was fully observed and simply scored low.",
+    note: "The hard case: a farmer whose harvest gaps ARE forgiven and who is still an Avoider on what remains. The seasonal exception has to be capable of returning a low score, or it is just a discount. He is also a THIN_FILE-by-SCORE case (Nirmala K. is the other): four of five signals observed, so nothing about his file is thin, and he lands at 548 against a band boundary of 550. The tier label alone would call him unscoreable; the scorecard has to read dataCompleteness separately to say what is actually true, which is that he was fully observed and simply scored low.",
   },
   {
     archetype: "AVOIDER",
@@ -1211,10 +1216,10 @@ function reportCohortFailure(
     // 1. A Planner who does not clear Prime has lost the thesis.
     if (
       profile.financialArchetype === "PLANNER" &&
-      !(profile.vistaraScore > 750)
+      profile.vistaraScore < TIER_THRESHOLDS.PRIME
     ) {
       reportCohortFailure(
-        "every PLANNER scores above 750",
+        `every PLANNER clears Prime (${TIER_THRESHOLDS.PRIME})`,
         profile.customer.id,
         profile.vistaraScore,
       );

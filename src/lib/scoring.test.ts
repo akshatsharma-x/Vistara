@@ -242,10 +242,12 @@ test("1. sigma of zero is a consistency index of exactly 100", () => {
 
   // And it is regularity being scored, not compliance: a customer who reliably
   // services every 75 days against a 90-day cadence is still perfectly regular.
+  // Within the on-beat tolerance, that is — a steady rhythm far enough off
+  // cadence to run late every cycle does pay the recovery penalty.
   const offCadence = computeMetrics(comb("vehicle_service", 75, 10));
   eq(offCadence.stdDevDays, 0, "off-cadence comb stdDevDays");
   eq(offCadence.consistencyIndex, 100, "off-cadence comb consistencyIndex");
-  note("regularity, not compliance: a steady 75d rhythm on a 90d cadence = 100");
+  note("regularity, not compliance: a steady 75d rhythm on a 90d cadence (inside tolerance) = 100");
 });
 
 /* ================================================================== *
@@ -648,7 +650,8 @@ test("6. income on the 28th recommends the 1st or 2nd, not the 28th", () => {
   }
 
   // UPI is the most direct read on income there is, so it wins over a utility
-  // bill even when the bill is the more concentrated of the two.
+  // bill when the two are equally concentrated. (A bill that is clearly more
+  // concentrated than a scattered UPI history does win — concentration decides.)
   const chosen = recommendEmiDate([
     monthlyOnDay("upi_recurring", 28, 12),
     monthlyOnDay("utility_bill", 15, 12),
