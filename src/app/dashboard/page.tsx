@@ -21,6 +21,7 @@ import {
   COLOR_MAP,
   CONSISTENCY_BANDS,
   MIN_EVENTS_TO_SCORE,
+  MIN_STREAMS_TO_SCORE,
   OBSERVATION_DAYS,
   OBSERVATION_MONTHS,
   OCCUPATION_META,
@@ -87,6 +88,10 @@ const HIGHEST_SCORE = SCORES.reduce((high, score) => Math.max(high, score), SCOR
 
 const NO_BUREAU = QUEUE.filter((profile) => !profile.customer.hasCibilScore);
 const NO_BUREAU_SHARE = (NO_BUREAU.length / COHORT_SIZE) * 100;
+/** Of those, the files with enough observed rhythm to be scored at all. */
+const NO_BUREAU_SCORED = NO_BUREAU.filter(
+  (profile) => profile.scoredSources.length >= MIN_STREAMS_TO_SCORE,
+);
 
 const THIN_FILE_COUNT = COHORT_SIZE - APPROVABLE.length;
 
@@ -512,6 +517,8 @@ const QUEUE_COLUMNS: DataTableColumn<TemporalProfile>[] = [
  * ================================================================== */
 
 const TOP = QUEUE[0];
+/** Ranked by the engine, so the note quotes its pricing rather than guessing it. */
+const TOP_NEXT_ACTION = TOP.improvementActions[0];
 
 /**
  * Ranked on the consistency index, with normalised sigma as the tie-break: two
@@ -607,9 +614,11 @@ function FactorLine({ metric, profile }: FactorLineProps) {
           </dd>
         </div>
         <div className="flex gap-1.5">
-          <dt>Streak</dt>
+          <dt>Current streak</dt>
+          {/* The streak counts on-beat GAPS, and n events have n - 1 of them:
+              "19 of 20 events" read as one miss on a run that has none. */}
           <dd className="tabular text-vistara-text">
-            {metric.streakLength} of {metric.eventCount} events
+            {metric.streakLength} of {Math.max(0, metric.eventCount - 1)} gaps
           </dd>
         </div>
         {factor === undefined ? null : (
@@ -652,7 +661,7 @@ export default function DashboardPage() {
     );
   const weakestNote = weakestAllTight
     ? `Even the lowest-ranked rhythms here band ${worstBandLabel(TOP_WEAKEST)} or better. Nothing in this file is loose — the score sits ${SCORE_MAX - TOP.vistaraScore} points off the top of the ${SCORE_MIN}–${SCORE_MAX} range.`
-    : `These carry the least weight-adjusted contribution in the file${TOP_WEAKEST.length === 0 ? "" : `, and ${BEHAVIOR_META[TOP_WEAKEST[0].source].short} is where the largest remaining gain sits`}.`;
+    : `These are the lowest consistency indices in the file.${TOP_NEXT_ACTION === undefined ? "" : ` The engine's best-priced next step is "${TOP_NEXT_ACTION.title}", at +${TOP_NEXT_ACTION.potentialPoints} points.`}`;
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-10 sm:py-12">
@@ -661,7 +670,7 @@ export default function DashboardPage() {
         size="page"
         eyebrow="Dealer desk · underwriting queue"
         title="Loan officer dashboard"
-        description={`${COHORT_SIZE} live applications, scored on timestamps alone. Observation window ${formatDate(WINDOW_START)} to ${formatDate(REFERENCE_DATE)} — ${OBSERVATION_MONTHS} months of recurring life events, no amounts and no categories. Synthetic cohort from a fixed seed: the same file always returns the same score.`}
+        description={`${COHORT_SIZE} applications in the queue, scored on timestamps alone. Observation window ${formatDate(WINDOW_START)} to ${formatDate(REFERENCE_DATE)} — ${OBSERVATION_MONTHS} months of recurring life events, no amounts and no categories. Synthetic cohort from a fixed seed: the same file always returns the same score.`}
       />
 
       {/* ── KPI row ──────────────────────────────────────────────────── */}
@@ -685,7 +694,7 @@ export default function DashboardPage() {
         <StatTile
           label="No bureau record"
           value={NO_BUREAU.length}
-          hint={`${pct(NO_BUREAU_SHARE)} of the queue has no CIBIL score at all — invisible to conventional underwriting, fully readable here.`}
+          hint={`${pct(NO_BUREAU_SHARE)} of the queue has no CIBIL score at all — invisible to conventional underwriting. ${NO_BUREAU_SCORED.length === NO_BUREAU.length ? "Every one of them" : `${NO_BUREAU_SCORED.length} of them`} carries enough rhythm to be scored here.`}
         />
       </div>
 
@@ -711,7 +720,7 @@ export default function DashboardPage() {
       </section>
 
       {/* ── Portfolio shape ──────────────────────────────────────────── */}
-      <section className="mt-10 grid gap-4 lg:grid-cols-2">
+      <section className="mt-10 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card
           eyebrow="Portfolio shape"
           title="Applicants by tier"
