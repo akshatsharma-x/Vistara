@@ -5,6 +5,7 @@ import {
   OBSERVATION_DAYS,
   OBSERVATION_MONTHS,
 } from "@/lib/constants";
+import { onBeatToleranceDays } from "@/lib/consistency";
 import { formatBeatOffset, formatDate, formatMonthShort } from "@/lib/format";
 import { REFERENCE_DATE, addDays, clamp, daysBetween } from "@/lib/rng";
 import type { BehaviorStream, ConsistencyBand } from "@/lib/types";
@@ -13,6 +14,12 @@ export interface EventStripProps {
   stream: BehaviorStream;
   /** The cadence this behaviour is expected to repeat on, in days. */
   expectedIntervalDays: number;
+  /**
+   * Gaps the engine set aside under the seasonal exception, as
+   * `ConsistencyMetrics.excludedGapIndices` reports them. The event that closes
+   * a forgiven gap is drawn as forgiven rather than late, as the streak counts it.
+   */
+  forgivenGapIndices?: readonly number[];
   className?: string;
 }
 
@@ -31,7 +38,7 @@ const DOT_R = 5; // 10px marks, comfortably over the 8px floor
 const DENSE_BEATS = 30;
 const MISS_GLYPH = "✕";
 
-type BeatKind = "onBeat" | "offBeat" | "missed";
+type BeatKind = "onBeat" | "offBeat" | "forgiven" | "missed";
 
 /**
  * Beat status is a risk STATE, so it wears the reserved status tokens already
@@ -46,6 +53,7 @@ function statusColor(band: ConsistencyBand): string {
 const BEAT_STYLE: Record<BeatKind, { color: string; label: string }> = {
   onBeat: { color: statusColor("exceptional"), label: "On beat" },
   offBeat: { color: statusColor("moderate"), label: "Off beat" },
+  forgiven: { color: statusColor("strong"), label: "Seasonal gap, forgiven" },
   missed: { color: statusColor("developing"), label: "Missed beat" },
 };
 
@@ -68,9 +76,20 @@ interface Classified {
  * rigid grid pinned to the first event: over 18 months even a tight rhythm
  * random-walks a few days off an absolute grid, and grading that as failure
  * would misread the very signal this product sells.
+ *
+ * THE ENGINE'S RULE, NOT A SECOND ONE. A gap is on beat when it lands within
+ * `onBeatToleranceDays` of the expected interval — the test computeMetrics
+ * builds the streak from — and its offset is gap minus interval, so a 135-day
+ * gap on a 90-day cadence is 45 days late here exactly as it is in the score.
+ * A private tolerance here had the strip calling 10 of 18 electricity payments
+ * off beat beside a scorecard reporting a streak of 17.
  */
-function classify(timestamps: Date[], interval: number): Classified {
-  const tolerance = Math.max(2, interval * 0.12);
+function classify(
+  timestamps: Date[],
+  interval: number,
+  forgiven: ReadonlySet<number>,
+): Classified {
+  const tolerance = onBeatToleranceDays(interval);
   const events: PlottedEvent[] = [];
   const missed: Date[] = [];
 
@@ -82,14 +101,20 @@ function classify(timestamps: Date[], interval: number): Classified {
 
     const previous = timestamps[i - 1];
     const gap = daysBetween(previous, date);
-    const skipped = Math.max(0, Math.round(gap / interval) - 1);
+    const deltaDays = gap - interval;
 
-    for (let k = 1; k <= Math.min(skipped, 24); k += 1) {
+    // Set aside by the seasonal exception: neither late nor a run of misses.
+    if (forgiven.has(i - 1)) {
+      events.push({ date, kind: "forgiven", deltaDays, isFirst: false });
+      return;
+    }
+
+    // Every expected beat that came and went, by more than the tolerance,
+    // before this event arrived.
+    for (let k = 1; k <= 24 && gap > k * interval + tolerance; k += 1) {
       missed.push(addDays(previous, k * interval));
     }
 
-    // Residual against the beat this event actually landed on.
-    const deltaDays = gap - (skipped + 1) * interval;
     events.push({
       date,
       kind: Math.abs(deltaDays) <= tolerance ? "onBeat" : "offBeat",
@@ -153,6 +178,19 @@ function LegendGlyph({ kind }: { kind: BeatKind }) {
           strokeWidth={2}
         />
       ) : null}
+      {kind === "forgiven" ? (
+        <>
+          <circle
+            cx={6}
+            cy={6}
+            r={4.5}
+            fill={CHART_INK.surface}
+            stroke={color}
+            strokeWidth={1.5}
+          />
+          <circle cx={6} cy={6} r={1.75} fill={color} />
+        </>
+      ) : null}
       {kind === "missed" ? (
         <text
           x={6}
@@ -177,6 +215,7 @@ function LegendGlyph({ kind }: { kind: BeatKind }) {
 export function EventStrip({
   stream,
   expectedIntervalDays,
+  forgivenGapIndices,
   className,
 }: EventStripProps) {
   const interval =
@@ -213,14 +252,23 @@ export function EventStrip({
     return `${(X0 + t * (X1 - X0)).toFixed(3)}%`;
   };
 
-  const { events, missed, tolerance } = classify(timestamps, interval);
+  const { events, missed, tolerance } = classify(
+    timestamps,
+    interval,
+    new Set(forgivenGapIndices ?? []),
+  );
   const beats = expectedBeats(first, interval, end);
   const dense = beats.length > DENSE_BEATS;
   const months = monthStarts(start, end);
   const labelStep = months.length > 12 ? 3 : months.length > 6 ? 2 : 1;
 
   const onBeatCount = events.filter((event) => event.kind === "onBeat").length;
-  const offBeatCount = events.length - onBeatCount;
+  const forgivenCount = events.filter((event) => event.kind === "forgiven").length;
+  const offBeatCount = events.length - onBeatCount - forgivenCount;
+  // Gaps are whole days, so "within 22.5d" and "within 22d" are the same test.
+  const toleranceLabel = Math.floor(tolerance);
+  const forgivenNote =
+    forgivenCount > 0 ? ` · ${forgivenCount} seasonal ${forgivenCount === 1 ? "gap" : "gaps"} forgiven` : "";
 
   return (
     <div className={className}>
@@ -241,11 +289,12 @@ export function EventStrip({
         <span className="tabular">{onBeatCount}</span> on beat ·{" "}
         <span className="tabular">{offBeatCount}</span> off beat ·{" "}
         <span className="tabular">{missed.length}</span> missed beats
+        {forgivenNote}
       </p>
 
       <div
         role="img"
-        aria-label={`${stream.label}: ${timestamps.length} events over the trailing ${Math.round(span)} days, expected every ${interval} days. ${onBeatCount} on beat, ${offBeatCount} off beat, ${missed.length} missed beats.`}
+        aria-label={`${stream.label}: ${timestamps.length} events over the trailing ${Math.round(span)} days, expected every ${interval} days. ${onBeatCount} on beat, ${offBeatCount} off beat, ${missed.length} missed beats${forgivenNote.replace(" · ", ", ")}.`}
         className="mt-2"
       >
         <svg
@@ -302,7 +351,9 @@ export function EventStrip({
             const cx = xOf(event.date);
             const detail = event.isFirst
               ? "first observed event"
-              : formatBeatOffset(event.deltaDays, tolerance);
+              : event.kind === "forgiven"
+                ? `seasonal gap of ${Math.round(event.deltaDays + interval)}d, forgiven`
+                : formatBeatOffset(event.deltaDays, tolerance);
 
             return (
               <g key={`event-${i}`}>
@@ -319,6 +370,18 @@ export function EventStrip({
                     stroke={CHART_INK.surface}
                     strokeWidth={2}
                   />
+                ) : event.kind === "forgiven" ? (
+                  <>
+                    <circle
+                      cx={cx}
+                      cy={LANE_Y}
+                      r={DOT_R}
+                      fill={CHART_INK.surface}
+                      stroke={style.color}
+                      strokeWidth={1.5}
+                    />
+                    <circle cx={cx} cy={LANE_Y} r={2} fill={style.color} />
+                  </>
                 ) : (
                   <circle
                     cx={cx}
@@ -369,7 +432,7 @@ export function EventStrip({
         <li className="flex items-center gap-1.5">
           <LegendGlyph kind="onBeat" />
           <span>
-            {BEAT_STYLE.onBeat.label} (within {Math.round(tolerance)}d)
+            {BEAT_STYLE.onBeat.label} (within {toleranceLabel}d)
           </span>
         </li>
         <li className="flex items-center gap-1.5">
@@ -380,6 +443,12 @@ export function EventStrip({
           <LegendGlyph kind="missed" />
           <span>{BEAT_STYLE.missed.label}</span>
         </li>
+        {forgivenCount > 0 ? (
+          <li className="flex items-center gap-1.5">
+            <LegendGlyph kind="forgiven" />
+            <span>{BEAT_STYLE.forgiven.label}</span>
+          </li>
+        ) : null}
         <li className="flex items-center gap-1.5">
           <span
             aria-hidden

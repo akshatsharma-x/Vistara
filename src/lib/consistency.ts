@@ -348,6 +348,7 @@ function unscorableMetric(
     scorable: false,
     seasonalityAdjusted: false,
     excludedSeasonalGaps: 0,
+    excludedGapIndices: [],
   };
 }
 
@@ -475,6 +476,7 @@ export function computeMetrics(
     scorable: true,
     seasonalityAdjusted,
     excludedSeasonalGaps: excluded.length,
+    excludedGapIndices: excluded,
   };
 }
 

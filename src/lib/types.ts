@@ -123,6 +123,13 @@ export interface ConsistencyMetrics {
   seasonalityAdjusted: boolean;
   /** How many gaps the seasonal adjustment removed (0–2). */
   excludedSeasonalGaps: number;
+  /**
+   * Which gaps it removed: index i is the gap between timestamps[i] and
+   * timestamps[i + 1]. Lets the event strip draw a forgiven gap as forgiven
+   * instead of as late, so the picture agrees with the streak. Optional only
+   * so a hand-built exhibit, or a profile stored by an older build, can omit it.
+   */
+  excludedGapIndices?: number[];
 }
 
 /* ------------------------------------------------------------------ *

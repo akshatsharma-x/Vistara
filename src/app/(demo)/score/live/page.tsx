@@ -368,6 +368,10 @@ const RhythmStrips = memo(function RhythmStrips({
             key={stream.source}
             stream={stream}
             expectedIntervalDays={stream.expectedIntervalDays}
+            forgivenGapIndices={
+              profile.metrics.find((metric) => metric.source === stream.source)
+                ?.excludedGapIndices
+            }
           />
         ))}
       </div>

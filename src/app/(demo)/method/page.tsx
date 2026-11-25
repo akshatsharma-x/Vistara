@@ -742,6 +742,7 @@ export default function MethodPage() {
                           ? exhibitMeta.expectedIntervalDays
                           : exhibit.metric.expectedIntervalDays
                       }
+                      forgivenGapIndices={exhibit.metric?.excludedGapIndices}
                     />
 
                     <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-vistara-border pt-4">

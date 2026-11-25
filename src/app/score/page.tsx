@@ -1106,6 +1106,10 @@ export default function ScorePage({
                   key={source}
                   stream={stream}
                   expectedIntervalDays={stream.expectedIntervalDays}
+                  forgivenGapIndices={
+                    metrics.find((metric) => metric.source === source)
+                      ?.excludedGapIndices
+                  }
                 />
               );
             })}
