@@ -19,7 +19,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { BEHAVIOR_ORDER } from "../constants";
+import {
+  ARCHETYPE_META,
+  BEHAVIOR_ORDER,
+  OCCUPATION_META,
+  TIER_LOAN_CONFIG,
+} from "../constants";
 import { scoreProfile } from "../consistency";
 import { createRng, hashSeed } from "../rng";
 import { defaultStreamAvailability, generateStreams } from "../synthetic-data";
@@ -310,13 +315,60 @@ type SerialisedProfile = Omit<TemporalProfile, "streams"> & {
   streams: SerialisedStream[];
 };
 
+const has = (table: object, key: unknown): boolean =>
+  typeof key === "string" && Object.prototype.hasOwnProperty.call(table, key);
+
+/**
+ * Whether a parsed value has every field the scorecard dereferences. Checked
+ * field by field because a key written by an older build parses as JSON and
+ * then throws on first use — `profile.customer.occupation` on an object with
+ * no customer — and that crash would repeat on every visit for the rest of the
+ * tab, since nothing else ever removes the key.
+ */
+function isSerialisedProfile(value: unknown): value is SerialisedProfile {
+  if (value === null || typeof value !== "object") return false;
+  const p = value as Partial<SerialisedProfile>;
+  const c = p.customer;
+
+  return (
+    c !== null &&
+    typeof c === "object" &&
+    typeof c.name === "string" &&
+    typeof c.city === "string" &&
+    Number.isFinite(c.age) &&
+    Number.isFinite(c.monthlyIncome) &&
+    has(OCCUPATION_META, c.occupation) &&
+    has(TIER_LOAN_CONFIG, p.tier) &&
+    has(ARCHETYPE_META, p.financialArchetype) &&
+    Number.isFinite(p.vistaraScore) &&
+    Number.isFinite(p.recommendedEmiDate) &&
+    Number.isFinite(p.dataCompleteness) &&
+    Number.isFinite(p.crossDomainConsistency) &&
+    Array.isArray(p.metrics) &&
+    Array.isArray(p.factors) &&
+    Array.isArray(p.improvementActions) &&
+    Array.isArray(p.scoredSources) &&
+    Array.isArray(p.missingSources) &&
+    Array.isArray(p.streams) &&
+    p.streams.every(
+      (stream) =>
+        stream !== null &&
+        typeof stream === "object" &&
+        Array.isArray(stream.timestamps) &&
+        stream.timestamps.every(
+          (t) => typeof t === "string" && Number.isFinite(Date.parse(t)),
+        ),
+    )
+  );
+}
+
 /**
  * Reads the stored profile, reviving the timestamps.
  *
  * Returns null rather than throwing on anything unexpected — no storage (SSR,
  * or a browser with it disabled), no key, malformed JSON, or an object from an
  * older shape of the app. A stale key must degrade to "no profile", never to a
- * crashed scorecard.
+ * crashed scorecard, so a key that fails the shape check is also removed.
  */
 export function readStoredProfile(): TemporalProfile | null {
   if (typeof window === "undefined") return null;
@@ -325,13 +377,9 @@ export function readStoredProfile(): TemporalProfile | null {
     const raw = window.sessionStorage.getItem(VISTARA_PROFILE_KEY);
     if (raw === null) return null;
 
-    const parsed = JSON.parse(raw) as SerialisedProfile;
-    if (
-      parsed === null ||
-      typeof parsed !== "object" ||
-      !Array.isArray(parsed.streams) ||
-      !Number.isFinite(parsed.vistaraScore)
-    ) {
+    const parsed: unknown = JSON.parse(raw);
+    if (!isSerialisedProfile(parsed)) {
+      clearStoredProfile();
       return null;
     }
 
@@ -343,6 +391,7 @@ export function readStoredProfile(): TemporalProfile | null {
       })),
     };
   } catch {
+    clearStoredProfile();
     return null;
   }
 }
@@ -404,8 +453,12 @@ export function useVistara(): UseVistaraResult {
 
     setInput(next);
     // Clear the previous result up front. Leaving it visible under a loading
-    // state shows one applicant's score while another's is computing.
+    // state shows one applicant's score while another's is computing. The
+    // stored copy goes too: the form writes the new loan request at submit, so
+    // a reload during processing would otherwise pair the previous applicant's
+    // profile with this applicant's request.
     setProfile(null);
+    clearStoredProfile();
     setIsProcessing(true);
 
     timer.current = setTimeout(() => {
