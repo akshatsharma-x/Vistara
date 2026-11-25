@@ -41,6 +41,7 @@ import {
   ARCHETYPE_META,
   BEHAVIOR_META,
   BEHAVIOR_ORDER,
+  CHART_INK,
   COLOR_MAP,
   CONSISTENCY_BANDS,
   DEMO_CUSTOMERS,
@@ -792,7 +793,9 @@ export default function LiveScorePage() {
         <p
           aria-hidden
           className="tabular mt-3 text-7xl font-black leading-none tracking-tight print:hidden"
-          style={{ color: tierInk.color }}
+          // Muted for a gated file: the dash is an absence, not a verdict to
+          // paint in the tier colour. The badge below carries the tier.
+          style={{ color: thinByCoverage ? CHART_INK.muted : tierInk.color }}
         >
           {thinByCoverage ? "—" : formatScore(countedScore)}
         </p>
@@ -873,9 +876,9 @@ export default function LiveScorePage() {
             this one does not have to be rounded back out of a ratio. */}
         {profile.dataCompleteness < 1 ? (
           <p className="mt-4 text-sm text-vistara-muted">
-            Score built from{" "}
+            {thinByCoverage ? "" : "Score built from "}
             <span className="tabular text-vistara-text">{signalCount}</span> of{" "}
-            {BEHAVIOR_ORDER.length} signals
+            {BEHAVIOR_ORDER.length} signals{thinByCoverage ? " observed" : ""}
           </p>
         ) : null}
       </section>
