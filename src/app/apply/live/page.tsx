@@ -51,6 +51,7 @@ import {
   SCORE_MAX,
   SCORE_MIN,
   SEASONAL_OCCUPATIONS,
+  TIER_LOAN_CONFIG,
 } from "@/lib/constants";
 import { formatINR } from "@/lib/format";
 import { PROCESSING_MS, useVistara } from "@/lib/hooks/useVistara";
@@ -71,7 +72,9 @@ const INCOME_STEP = 2_500;
 const INCOME_DEFAULT = 25_000;
 
 const LOAN_MIN = 20_000;
-const LOAN_MAX = 200_000;
+// The most any tier lends. A request above it could only ever be answered with
+// "improve your score to unlock" for an amount no score unlocks.
+const LOAN_MAX = TIER_LOAN_CONFIG.PRIME.maxLoanAmount;
 const LOAN_STEP = 5_000;
 const LOAN_DEFAULT = 60_000;
 

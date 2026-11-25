@@ -590,6 +590,10 @@ export default function LiveScorePage() {
       : loan.maxLoanAmount;
   const emi = monthlyEmi(loanOffered, loan.interestRate, loan.tenureMonths);
   const cappedByTier = view.loanRequested > loan.maxLoanAmount;
+  // Above every tier's ceiling: no score unlocks it, so say that instead. Only
+  // reachable through a request stored before the slider was capped at Prime.
+  const programmeMax = TIER_LOAN_CONFIG.PRIME.maxLoanAmount;
+  const aboveProgramme = view.loanRequested > programmeMax;
 
   /**
    * The factor columns.
@@ -975,7 +979,12 @@ export default function LiveScorePage() {
               nothing. Same sentence either way; only the affordance differs. */}
           {cappedByTier ? (
             <p className="mt-4 text-sm">
-              {gap === null ? (
+              {aboveProgramme ? (
+                <span className="text-vistara-amber">
+                  {formatINR(view.loanRequested)} is above the{" "}
+                  {formatINR(programmeMax)} this programme lends at any tier.
+                </span>
+              ) : gap === null ? (
                 <span className="text-vistara-amber">
                   Improve your score to unlock{" "}
                   {formatINR(view.loanRequested)}
