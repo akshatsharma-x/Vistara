@@ -4,6 +4,12 @@ export interface CardProps {
   /** Small caps label rendered above the title. */
   eyebrow?: string;
   title?: ReactNode;
+  /**
+   * The title's level in the document outline; size is unaffected. h3 by
+   * default, for cards inside a section. A card that IS a page's section — the
+   * first thing under the h1 — passes h2, or the outline skips from h1 to h3.
+   */
+  titleAs?: "h2" | "h3";
   description?: ReactNode;
   /** Top-right slot: a Button, a Badge, a legend. */
   action?: ReactNode;
@@ -33,6 +39,7 @@ export interface CardProps {
 export function Card({
   eyebrow,
   title,
+  titleAs: TitleTag = "h3",
   description,
   action,
   padded = true,
@@ -77,7 +84,7 @@ export function Card({
             ) : null}
 
             {title !== undefined ? (
-              <h3
+              <TitleTag
                 className={[
                   "text-[15px] font-semibold tracking-tight text-vistara-text",
                   eyebrow !== undefined ? "mt-1.5" : "",
@@ -86,7 +93,7 @@ export function Card({
                   .join(" ")}
               >
                 {title}
-              </h3>
+              </TitleTag>
             ) : null}
 
             {description !== undefined ? (

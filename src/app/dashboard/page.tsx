@@ -702,6 +702,7 @@ export default function DashboardPage() {
       <section className="mt-10">
         <Card
           eyebrow="Applicant queue"
+          titleAs="h2"
           title="Ranked by Vistara score"
           description="Cross-domain is the coherence index across every rhythm observed for that applicant — the figure that separates one lucky habit from character. EMI date is aligned to the applicant's own cash-flow rhythm, not to the dealer's billing cycle. Products come straight from the tier's standing configuration."
         >
@@ -723,6 +724,7 @@ export default function DashboardPage() {
       <section className="mt-10 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card
           eyebrow="Portfolio shape"
+          titleAs="h2"
           title="Applicants by tier"
           description="Bar length is the count against the full queue; the ramp runs along the tier order. The tier's own status colour stays on its label, where it always sits with its glyph and its name."
         >
@@ -743,6 +745,7 @@ export default function DashboardPage() {
 
         <Card
           eyebrow="Data honesty"
+          titleAs="h2"
           title="Signal coverage"
           description={`How many of the ${COHORT_SIZE} files carry a readable rhythm for each behaviour. A stream needs ${MIN_EVENTS_TO_SCORE} events before the engine will claim a rhythm exists; anything short of that is excluded from the score rather than imputed, and the remaining weights are renormalised.`}
         >
@@ -805,6 +808,7 @@ export default function DashboardPage() {
       <section className="mt-10">
         <Card
           eyebrow="Adjudication note"
+          titleAs="h2"
           title={`Why ${TOP.customer.name} scores ${formatScore(TOP.vistaraScore)}`}
           description="Ranked on the per-behaviour consistency index; ties break on sigma restated at a 30-day cadence, the only drift figure comparable across a weekly and a quarterly rhythm."
           action={<TierBadge tier={TOP.tier} score={TOP.vistaraScore} size="md" />}

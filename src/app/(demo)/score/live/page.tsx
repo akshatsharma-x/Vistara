@@ -884,6 +884,7 @@ export default function LiveScorePage() {
       {profile.tier === "THIN_FILE" ? (
         <Card
           padded
+          titleAs="h2"
           title={
             thinByCoverage
               ? "Score data insufficient for a loan offer"

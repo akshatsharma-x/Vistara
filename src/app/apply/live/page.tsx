@@ -1547,6 +1547,7 @@ export default function ApplyLivePage() {
             {/* ── Step 1 — profile ─────────────────────────────────── */}
             {step === 1 ? (
               <Card
+                titleAs="h2"
                 title="Tell us about yourself"
                 description="This helps us benchmark your rhythm against the right peer group."
               >

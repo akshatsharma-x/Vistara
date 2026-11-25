@@ -635,6 +635,7 @@ export default function ApplyPage() {
           {step === 1 ? (
             <Card
               eyebrow="Step 1"
+              titleAs="h2"
               title="Who is applying"
               description="Identity and income are used for KYC, eligibility and the officer's file. None of these four fields enters the Vistara score — the score is computed from timestamps alone."
             >
@@ -834,6 +835,7 @@ export default function ApplyPage() {
             <>
               <Card
                 eyebrow="Step 2"
+                titleAs="h2"
                 title="What Vistara may read"
                 description="Five streams, five separate permissions. Each one is a request for DATES and nothing else: we read WHEN things happened, never how much they cost, never who you paid, never who you know. Turn any of them off and the weight is redistributed across the rest."
               >
@@ -1090,6 +1092,7 @@ export default function ApplyPage() {
             <>
               <Card
                 eyebrow="Step 3"
+                titleAs="h2"
                 title="Review and submit"
                 description="Check the file, then submit to compute the score. Nothing here is sent anywhere — this prototype renders the scorecard locally."
               >
@@ -1277,6 +1280,7 @@ export default function ApplyPage() {
 
           <Card
             eyebrow="Never requested"
+            titleAs="h2"
             title="The list a lender usually asks for"
             className="text-[12px]"
           >
