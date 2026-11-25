@@ -1,0 +1,270 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-vistara-dark text-vistara-text antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  /* Axis ticks and table columns must align vertically; hero figures must not.
+     Proportional figures stay the default — see marks-and-anatomy guidance. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    @apply bg-vistara-accent/30;
+  }
+
+  *:focus-visible {
+    @apply outline-none ring-2 ring-vistara-accent ring-offset-2 ring-offset-vistara-dark;
+  }
+}
+
+@layer utilities {
+  /* Hairline top-light used on cards to lift them off the page plane. */
+  .card-sheen {
+    background-image: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.028),
+      transparent 42%
+    );
+  }
+
+  /* The landing hero's mesh. Two soft radial washes at 8% and 5% alpha — low
+     enough that headline text never loses contrast against them, which is why
+     they are stated as rgba here rather than as an opacity on the element.
+     Static by default; the drift is added under a no-preference query below. */
+  .hero-mesh {
+    background-image:
+      radial-gradient(
+        ellipse 62% 54% at 22% 18%,
+        rgba(108, 99, 255, 0.08),
+        transparent 70%
+      ),
+      radial-gradient(
+        ellipse 58% 50% at 78% 76%,
+        rgba(0, 212, 154, 0.05),
+        transparent 70%
+      );
+  }
+
+  /* The hero's texture layer, sitting under the mesh on the same element's
+     background. A structural grid rather than a blob, which is the point: this
+     product's whole claim is that a life has a beat, and a fixed 32px pitch says
+     that before the headline does.
+
+     1px dots at 15% accent — a higher alpha than either mesh wash, because a
+     single pixel every 32px covers almost none of the surface and reads as
+     nothing at the mesh's 8%. Total ink is well under a tenth of a percent of
+     the hero, so headline contrast is untouched. */
+  .dot-grid {
+    background-image: radial-gradient(
+      circle,
+      rgba(108, 99, 255, 0.15) 1px,
+      transparent 1px
+    );
+    background-size: 32px 32px;
+  }
+
+  .grid-backdrop {
+    background-image:
+      linear-gradient(to right, rgba(108, 99, 255, 0.055) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(108, 99, 255, 0.055) 1px, transparent 1px);
+    background-size: 46px 46px;
+    -webkit-mask-image: radial-gradient(
+      ellipse 78% 58% at 50% 0%,
+      #000 42%,
+      transparent 100%
+    );
+    mask-image: radial-gradient(
+      ellipse 78% 58% at 50% 0%,
+      #000 42%,
+      transparent 100%
+    );
+  }
+}
+
+/* Motion that only exists when motion is welcome. The reduce block below is a
+   backstop for animations declared elsewhere; these two are never declared at
+   all unless the user has said they do not mind. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* The mesh drifts by transform, not by background-position. Both move the
+     washes; only one of them is composited. Animating background-position
+     repaints the full width of the hero every frame for as long as the page is
+     open, which on the low-end Android this demo is aimed at is a cost paid
+     forever for an effect nobody is looking at. The scale never drops below 1,
+     so the grown layer always covers its own box and no edge is ever exposed. */
+  .hero-mesh {
+    animation: mesh-drift 12s ease-in-out infinite alternate;
+  }
+
+  @keyframes mesh-drift {
+    from {
+      transform: scale(1.06) translate3d(-1.5%, 1%, 0);
+    }
+    to {
+      transform: scale(1.12) translate3d(1.5%, -1%, 0);
+    }
+  }
+
+  /* The score bars in the landing page's demo cards, filling on load. The page is
+     a Server Component with no client boundary, so this is the only kind of
+     entrance it can have — there is no JavaScript on that route to drive one.
+     Animating width rather than transform is deliberate here and cheap: four bars,
+     once, 800ms, on a page whose layout is settled before it starts.
+
+     THE INLINE `width` IS THE TRUTH, NOT THIS RULE. The call site sets both
+     `width` and `--bar-width` to the same percentage. This animation exists only
+     to travel to a value the element already has: with animation, it arrives
+     there; with `prefers-reduced-motion: reduce`, this whole block never applies
+     and the inline width states the score directly; under `@media print`, the
+     reset there kills the animation and the inline width states it again.
+
+     Do not "simplify" by dropping the inline width and leaving only the custom
+     property. An empty block-level div with no width declaration is 100% of its
+     track — so every one of these bars would read as a perfect 900 for exactly
+     the readers who opted out of motion. A missing animation must degrade to the
+     right number, never to a full bar. */
+  @keyframes bar-fill {
+    from {
+      width: 0%;
+    }
+    to {
+      width: var(--bar-width);
+    }
+  }
+
+  .score-bar-fill {
+    animation: bar-fill 800ms ease-out both;
+    animation-delay: 200ms;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ================================================================== *
+ * Print — the scorecard on paper.
+ * ================================================================== *
+ * Reached from the "Print scorecard" button on /score/live, which calls
+ * window.print() and does nothing else.
+ *
+ * WHAT IS NOT HERE. Every decision about which elements disappear is made in the
+ * markup with Tailwind's `print:hidden` — the demo banner, the nav, the event
+ * strips, the button row, the exits. Those are judgements about particular
+ * elements and they belong beside the elements making them, where the next person
+ * to add a button can see the convention. What is left in this file is only what
+ * a variant cannot reach: the inherited page colours, and the handful of inline
+ * styles that need a flag to beat.
+ *
+ * WHY THE SELECTORS ARE THIS BROAD. A @media print block cannot affect screen
+ * rendering — no rule inside it is ever consulted for a screen paint — and that
+ * isolation is what licenses `[class*=]` matching here. `[class*="text-vistara"]`
+ * would be indefensible on screen: it captures every ink token in the app at
+ * once. On paper that is precisely the point. This is a dark theme, so every one
+ * of those tokens is a pale grey chosen to sit on #0A0A0F, and on white paper
+ * each of them lands as very nearly nothing.
+ * ================================================================== */
+@media print {
+  /* NOTHING ON PAPER IS MID-FLIGHT, and this rule was written after reading a
+     PDF rather than after reading the markup. The tier badge — the verdict the
+     whole page builds to — fades in on a 1200ms delay with
+     `animation-fill-mode: both`, so it deliberately holds opacity 0 until then.
+     Print is a snapshot, and a reader who reaches for Cmd-P while the page is
+     still settling was getting a blank gap where the tier should be. Resolving
+     every animation to its final state first is the only way a printout cannot
+     depend on when the button was pressed.
+
+     `animation: none` rather than a zero duration: the shorthand resets
+     animation-fill-mode along with the name, which is the longhand actually
+     holding the badge invisible. The reduced-motion backstop above zeroes
+     durations instead, because there the element still has to end up painted by
+     its own animation — here there is no animation left to paint it. */
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 11pt;
+    /* DemoBanner is fixed to the top of the viewport and offsets the body by its
+       own height with an inline style to make room for itself. The banner is
+       `print:hidden`, so without this the offset it paid for is 36px of blank
+       paper above the report. Inline, therefore `!important`. */
+    padding-top: 0 !important;
+  }
+
+  /* Card and header surfaces. The hairline border replaces the shadow, which does
+     not print, and the near-white fill keeps a card legible as a group even when
+     the reader has background graphics switched off. */
+  [class*="bg-vistara-surface"],
+  [class*="bg-vistara-dark"] {
+    background: #f9f9f9 !important;
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+  }
+
+  /* Every ink token in one rule, which is also how the print twin of the score
+     figure gets blackened — see the pair of <p>s under "Vistara score" on
+     /score/live. The animated original could not be reached from here at all: its
+     tier colour is an inline style, and no attribute selector can see one. */
+  [class*="text-vistara"],
+  [class*="text-ramp"] {
+    color: black !important;
+  }
+
+  /* The tier badge, and the "+N pts" chips built the same way. Their fill, ink
+     and ring are all inline styles, so all three have to be beaten with a flag
+     rather than merely restated. */
+  [class*="rounded-full"][class*="font-semibold"] {
+    background: white !important;
+    border: 1.5px solid black !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+
+  /* A loan offer cut in half by a page break is worse than a short first page. */
+  [class*="rounded-card"] {
+    break-inside: avoid;
+  }
+
+  /* The provenance line, on the one page in the app that can be printed. Stated
+     here rather than in the markup because it must not exist on screen at all,
+     and a `hidden print:block` element would still occupy the accessibility tree
+     and the copied summary. */
+  #print-score-root::before {
+    content: "Vistara Credit Score Report — Synthetic Data — Not for commercial use";
+    display: block;
+    font-size: 9pt;
+    color: #666;
+    margin-bottom: 16pt;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 8pt;
+  }
+}
