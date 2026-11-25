@@ -1231,7 +1231,7 @@ export default function LiveScorePage() {
           describe, and "your path to Prime" shown to someone already there reads
           as the page not knowing who it is talking to. */}
       {gap !== null ? (
-        <div id="path-to-prime" className="scroll-mt-8">
+        <div id="path-to-prime" className="scroll-mt-24">
           <h3 className="mb-1 mt-8 text-sm font-medium text-vistara-muted">
             {gap.title}
           </h3>

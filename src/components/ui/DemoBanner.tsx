@@ -84,9 +84,17 @@ export function DemoBanner() {
   useEffect(() => {
     if (!active) return;
 
+    // The padding moves the page down; the custom property moves the sticky
+    // header down with it. Without the second, the header pins to top: 0 under
+    // this fixed bar as soon as the page scrolls, and the nav stops taking
+    // clicks. The root layout reads it with a 0px fallback, so routes that never
+    // mount this component pay nothing.
+    const root = document.documentElement;
     document.body.style.paddingTop = `${BANNER_HEIGHT_PX}px`;
+    root.style.setProperty("--demo-banner-h", `${BANNER_HEIGHT_PX}px`);
     return () => {
       document.body.style.paddingTop = "";
+      root.style.removeProperty("--demo-banner-h");
     };
   }, [active]);
 

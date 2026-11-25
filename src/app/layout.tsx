@@ -32,7 +32,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen font-sans">
-        <header className="sticky top-0 z-40 border-b border-vistara-border/80 bg-vistara-dark/85 backdrop-blur-md">
+        <header className="sticky top-[var(--demo-banner-h,0px)] z-40 border-b border-vistara-border/80 bg-vistara-dark/85 backdrop-blur-md">
           <div className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-5">
             <Link href="/" className="flex items-center gap-2.5">
               <span
