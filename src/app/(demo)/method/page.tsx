@@ -104,8 +104,8 @@ const CONVENTIONAL_TESTS = [
 
 const VISTARA_TESTS = [
   "Timestamps only. Never an amount, never a category, never a merchant name.",
-  "The standard deviation of the gaps between repeats is the entire signal: a tight sigma is a promise kept on a schedule nobody enforced.",
-  `Every sigma is rescaled to a ${REFERENCE_CADENCE_DAYS}-day reference cadence, so a 7-day toll rhythm and a 90-day service rhythm are read on one comparable scale.`,
+  "The standard deviation of the gaps between repeats is the core of the signal: a tight sigma is a promise kept on a schedule nobody enforced. A current on-time streak and how fast a slip recovers adjust it; cross-domain coherence is scored on top.",
+  `Every sigma is rescaled to a ${REFERENCE_CADENCE_DAYS}-day reference cadence, so a 7-day toll rhythm and a 90-day service rhythm are read on one comparable scale. The rescaled figure sets the band and carries three-quarters of the sigma term; the raw days carry the rest, so a very slow rhythm cannot normalise away a drift measured in months.`,
 ];
 
 /**
@@ -823,8 +823,9 @@ export default function MethodPage() {
               A rice farmer services in February and August, not every 90 days.
               Scoring that as irregularity would penalise the cyclical incomes
               this product exists to serve. For {seasonalOccupations} profiles,
-              at most {MAX_SEASONAL_EXCLUSIONS} gaps that fall inside two
-              declared windows may be excluded before sigma is measured.
+              at most {MAX_SEASONAL_EXCLUSIONS} gaps per signal that fall inside
+              two declared windows may be excluded before sigma is measured, and
+              only on signals that repeat monthly or slower.
             </p>
             <ul className="mt-3 space-y-1.5">
               {SEASONAL_WINDOWS.map((window) => (

@@ -694,7 +694,7 @@ export default function ApplyPage() {
                   error={errorFor("occupation")}
                   hint={
                     seasonal
-                      ? `Seasonal adjustment is available for this occupation: up to ${MAX_SEASONAL_EXCLUSIONS} gaps falling inside ${SEASONAL_WINDOWS.map((w) => w.label).join(" or ")} may be excluded before sigma is measured — and it is always disclosed on the scorecard.`
+                      ? `Seasonal adjustment is available for this occupation: up to ${MAX_SEASONAL_EXCLUSIONS} gaps per monthly-or-slower signal falling inside ${SEASONAL_WINDOWS.map((w) => w.label).join(" or ")} may be excluded before sigma is measured — and it is always disclosed on the scorecard.`
                       : "Farmers and small merchants are additionally eligible for seasonal adjustment."
                   }
                 >

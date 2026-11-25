@@ -34,6 +34,7 @@ import {
   COLOR_MAP,
   COVERAGE_ACTIONS,
   CROSS_DOMAIN_WEIGHT,
+  MAX_SEASONAL_EXCLUSIONS,
   MIN_STREAMS_TO_SCORE,
   OBSERVATION_DAYS,
   OBSERVATION_MONTHS,
@@ -395,7 +396,7 @@ function RhythmTable({ profile }: { profile: TemporalProfile }) {
     <DataTable<MetricRow>
       rows={rows}
       getRowKey={(row) => row.source}
-      caption={`Every value plotted above, stated numerically. σ is the standard deviation of the gap between events; the normalised column restates σ on a 30-day reference cadence, which is the only figure comparable across a weekly toll and a quarterly service — and the figure the engine bands and scores. Window ${formatDate(WINDOW_START)} to ${formatDate(REFERENCE_DATE)}.`}
+      caption={`Every value plotted above, stated numerically. σ is the standard deviation of the gap between events; the normalised column restates σ on a 30-day reference cadence, which is the only figure comparable across a weekly toll and a quarterly service. It sets the band and carries three-quarters of the σ term in the index; raw σ carries the rest. Window ${formatDate(WINDOW_START)} to ${formatDate(REFERENCE_DATE)}.`}
       columns={[
         {
           key: "label",
@@ -952,7 +953,7 @@ export default function ScorePage({
               </span>{" "}
               a month declared.{" "}
               {seasonalEligible
-                ? `A cyclical income, so up to two harvest- or festival-window gaps are eligible for the documented seasonal exception${profile.seasonalityAdjusted ? " — and it was used on this file." : ", which this file did not need."}`
+                ? `A cyclical income, so up to ${MAX_SEASONAL_EXCLUSIONS} harvest- or festival-window gaps per monthly-or-slower signal are eligible for the documented seasonal exception${profile.seasonalityAdjusted ? " — and it was used on this file." : ", which this file did not need."}`
                 : "A non-cyclical income, so the seasonal exception does not apply to this file at all."}
             </>
           }
