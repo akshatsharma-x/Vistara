@@ -401,6 +401,19 @@ export const CHART_INK = {
  * from the customer's own gap to the next band, never hard-coded.
  */
 
+/**
+ * Months until a signal first shared today can be scored at all: it needs
+ * MIN_EVENTS_TO_SCORE events, so MIN_EVENTS_TO_SCORE - 1 full cadences after
+ * the first. A coverage action promising its points sooner than this promises
+ * something the engine will refuse to score — a first vehicle service is nine
+ * months from a scored rhythm, not three.
+ */
+function monthsUntilScorable(source: BehaviorSource): number {
+  const days =
+    (MIN_EVENTS_TO_SCORE - 1) * BEHAVIOR_META[source].expectedIntervalDays;
+  return Math.max(1, Math.ceil(days / 30));
+}
+
 /** Offered when a signal is missing entirely — the cold-start path. */
 export const COVERAGE_ACTIONS: Record<
   BehaviorSource,
@@ -409,32 +422,32 @@ export const COVERAGE_ACTIONS: Record<
   vehicle_service: {
     title: "Book your first service at a TVS dealer",
     detail:
-      "One dealer-recorded service starts your vehicle-care rhythm — the single heaviest signal Vistara reads, and the one no other lender can see.",
-    horizonMonths: 3,
+      "Dealer-recorded services build your vehicle-care rhythm — the single heaviest signal Vistara reads, and the one no other lender can see. It is scored from the fourth recorded service.",
+    horizonMonths: monthsUntilScorable("vehicle_service"),
   },
   upi_recurring: {
     title: "Move one fixed monthly payment to UPI AutoPay",
     detail:
       "Rent, a subscription, or a chit contribution paid on the same date each month gives Vistara a clean income-and-outgo rhythm to read.",
-    horizonMonths: 2,
+    horizonMonths: monthsUntilScorable("upi_recurring"),
   },
   utility_bill: {
     title: "Link your electricity account on BBPS",
     detail:
-      "Paying the same bill through the same channel each month is the fastest signal to establish — one billing cycle and it starts counting.",
-    horizonMonths: 2,
+      "Paying the same bill through the same channel each month is the quickest monthly signal to establish — four bills on file and it is scored.",
+    horizonMonths: monthsUntilScorable("utility_bill"),
   },
   phone_recharge: {
     title: "Switch to a fixed 28-day recharge pack",
     detail:
       "A repeating pack of the same validity turns a scatter of top-ups into a measurable cycle.",
-    horizonMonths: 2,
+    horizonMonths: monthsUntilScorable("phone_recharge"),
   },
   fastag_toll: {
     title: "Use FASTag for your regular commute",
     detail:
       "A weekly toll pattern is the highest-frequency rhythm available, so it stabilises your profile faster than any monthly signal.",
-    horizonMonths: 2,
+    horizonMonths: monthsUntilScorable("fastag_toll"),
   },
 };
 
@@ -446,19 +459,19 @@ export const TIGHTEN_ACTIONS: Record<
   vehicle_service: {
     title: "Service your vehicle on schedule, not on symptom",
     detail:
-      "Book the next service by odometer or calendar rather than waiting for a noise. Two on-time services visibly tighten your strongest signal.",
+      "Book the next service by odometer or calendar rather than waiting for a noise. Two on-time services visibly tighten the heaviest-weighted signal Vistara reads.",
     horizonMonths: 6,
   },
   upi_recurring: {
     title: "Fix your recurring UPI payments to one date",
     detail:
-      "Your recurring transfers drift across the month. Anchoring them to a single date is the largest single gain available to you.",
+      "Your recurring transfers drift across the month. Anchoring them to a single date gives Vistara one clean monthly beat to read.",
     horizonMonths: 4,
   },
   utility_bill: {
     title: "Pay the electricity bill on the day it arrives",
     detail:
-      "You pay it — just at an unpredictable point in the window. Same-day payment converts a moderate signal into a strong one.",
+      "You pay it — just at an unpredictable point in the window. Same-day payment lifts it into the next band up.",
     horizonMonths: 3,
   },
   phone_recharge: {
@@ -494,7 +507,7 @@ export const GENERIC_ACTIONS: Record<
   streak: {
     title: "Build a six-month unbroken streak",
     detail:
-      "Your rhythm is reasonable but keeps restarting. An uninterrupted run is what moves you into the next tier.",
+      "Your rhythm is reasonable but keeps restarting. An uninterrupted run earns the full streak bonus on every signal you share.",
     horizonMonths: 6,
   },
 };
