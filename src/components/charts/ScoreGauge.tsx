@@ -13,6 +13,14 @@ import type { Tier } from "@/lib/types";
 export interface ScoreGaugeProps {
   score: number;
   tier: Tier;
+  /**
+   * False when the file is THIN_FILE by the data gate (fewer than
+   * MIN_STREAMS_TO_SCORE observed rhythms). The engine still computes a figure
+   * from what it saw, but that figure is not a score: two perfect signals add up
+   * to 900, and a 900 printed beside "insufficient data" reads as a perfect
+   * score refused. So there is no figure and no marker, only the scale.
+   */
+  scored?: boolean;
   className?: string;
 }
 
@@ -73,7 +81,12 @@ function position(score: number): number {
 
 const pct = (value: number): string => `${value.toFixed(3)}%`;
 
-export function ScoreGauge({ score, tier, className }: ScoreGaugeProps) {
+export function ScoreGauge({
+  score,
+  tier,
+  scored = true,
+  className,
+}: ScoreGaugeProps) {
   const presentation = COLOR_MAP[tier];
   const markerX = position(score);
   const clipId = `score-track-${tier}-${Math.round(clamp(score, SCORE_MIN, SCORE_MAX))}`;
@@ -88,10 +101,10 @@ export function ScoreGauge({ score, tier, className }: ScoreGaugeProps) {
         {/* Hero figure: proportional numerals, one per view. */}
         <p className="flex items-baseline gap-2">
           <span className="text-hero font-semibold tracking-tight text-vistara-text">
-            {formatScore(score)}
+            {scored ? formatScore(score) : "—"}
           </span>
           <span className="tabular text-[13px] text-vistara-muted">
-            / {SCORE_MAX}
+            {scored ? `/ ${SCORE_MAX}` : "not scored yet"}
           </span>
         </p>
 
@@ -104,7 +117,11 @@ export function ScoreGauge({ score, tier, className }: ScoreGaugeProps) {
 
       <div
         role="img"
-        aria-label={`Score ${formatScore(score)} on the ${SCORE_MIN} to ${SCORE_MAX} scale. Tier ${presentation.label}. Tier cut-offs at ${THRESHOLDS.join(", ")}.`}
+        aria-label={
+          scored
+            ? `Score ${formatScore(score)} on the ${SCORE_MIN} to ${SCORE_MAX} scale. Tier ${presentation.label}. Tier cut-offs at ${THRESHOLDS.join(", ")}.`
+            : `Not scored yet: too few signals observed to place this file on the ${SCORE_MIN} to ${SCORE_MAX} scale. Tier cut-offs at ${THRESHOLDS.join(", ")}.`
+        }
         className="mt-5"
       >
         <svg
@@ -228,22 +245,26 @@ export function ScoreGauge({ score, tier, className }: ScoreGaugeProps) {
           </text>
 
           {/* The single marker: plumb line through the band, disc above it. */}
-          <rect
-            x={pct(markerX)}
-            transform="translate(-1,0)"
-            y={MARKER_CY}
-            width={2}
-            height={TICK_TOP - MARKER_CY + 2}
-            fill={presentation.color}
-          />
-          <circle
-            cx={pct(markerX)}
-            cy={MARKER_CY}
-            r={MARKER_R}
-            fill={presentation.color}
-            stroke={CHART_INK.surface}
-            strokeWidth={2}
-          />
+          {scored ? (
+            <>
+              <rect
+                x={pct(markerX)}
+                transform="translate(-1,0)"
+                y={MARKER_CY}
+                width={2}
+                height={TICK_TOP - MARKER_CY + 2}
+                fill={presentation.color}
+              />
+              <circle
+                cx={pct(markerX)}
+                cy={MARKER_CY}
+                r={MARKER_R}
+                fill={presentation.color}
+                stroke={CHART_INK.surface}
+                strokeWidth={2}
+              />
+            </>
+          ) : null}
         </svg>
       </div>
     </div>

@@ -54,6 +54,7 @@ import {
   TIER_LOAN_CONFIG,
   TIER_THRESHOLDS,
   bandEntry,
+  defaultStreamAvailability,
   formatDate,
   formatINR,
   formatScore,
@@ -567,7 +568,7 @@ export default function LiveScorePage() {
   const tierLabel = thinByCoverage
     ? "Thin File — Insufficient Data"
     : thinByScore
-      ? "Developing — Score Below Threshold"
+      ? "Thin File — Below the Developing Floor"
       : tierInk.label;
 
   const archetype = ARCHETYPE_META[profile.financialArchetype];
@@ -632,29 +633,34 @@ export default function LiveScorePage() {
    */
   const gap = tierGap(profile.tier, profile.vistaraScore, signalCount);
   const actions = profile.improvementActions.slice(0, PATH_ACTIONS_SHOWN);
+  // Not-yet-observed signals this customer could actually start sharing.
+  const plausible = defaultStreamAvailability(profile.customer);
+  const shareable = profile.missingSources.filter((source) => plausible[source]);
 
   /**
    * The scorecard as plain text, in the order the page states it.
    *
    * `tierLabel` rather than COLOR_MAP's label so the pasted summary says what
    * the screen says — including the THIN_FILE split, where the badge reads
-   * "Developing — Score Below Threshold" and a bare "Thin File" in the clipboard
+   * "Thin File — Below the Developing Floor" and a bare "Thin File" in the clipboard
    * would contradict it. The EMI goes in unrounded for the reason the offer card
    * gives: formatINR rounds to the rupee itself.
    */
   const summaryLines = [
-    `Vistara Score: ${formatScore(profile.vistaraScore)} / ${SCORE_MAX} (${tierLabel})`,
+    thinByCoverage
+      ? `Vistara Score: not scored — ${signalCount} of ${BEHAVIOR_ORDER.length} signals observed, ${MIN_STREAMS_TO_SCORE} needed (${tierLabel})`
+      : `Vistara Score: ${formatScore(profile.vistaraScore)} / ${SCORE_MAX} (${tierLabel})`,
     `Archetype: ${archetype.label}`,
     `Signals: ${signalCount} of ${BEHAVIOR_ORDER.length} observed`,
   ];
+  // The EMI date belongs to a loan, so it travels with the offer: a Thin File
+  // has neither.
   if (profile.tier !== "THIN_FILE") {
     summaryLines.push(
       `Loan offer: ${formatINR(loanOffered)} at ${loan.interestRate}% · EMI ${formatINR(emi)}/month`,
+      `Recommended EMI date: ${ordinalDay(profile.recommendedEmiDate)} of each month`,
     );
   }
-  summaryLines.push(
-    `Recommended EMI date: ${ordinalDay(profile.recommendedEmiDate)} of each month`,
-  );
 
   /**
    * Not a useCallback: it closes over the profile and is handed to an
@@ -780,7 +786,7 @@ export default function LiveScorePage() {
           className="tabular mt-3 text-7xl font-black leading-none tracking-tight print:hidden"
           style={{ color: tierInk.color }}
         >
-          {formatScore(countedScore)}
+          {thinByCoverage ? "—" : formatScore(countedScore)}
         </p>
 
         {/* The settled figure, for paper only. Reads `profile.vistaraScore`
@@ -796,13 +802,21 @@ export default function LiveScorePage() {
           aria-hidden
           className="tabular mt-3 hidden text-7xl font-black leading-none tracking-tight text-vistara-text print:block"
         >
-          {formatScore(profile.vistaraScore)}
+          {thinByCoverage ? "—" : formatScore(profile.vistaraScore)}
         </p>
+        {/* A gated file has no score. The engine still adds up what it saw, but
+            two clean signals sum to 900, and a 900 beside "insufficient data"
+            reads as a perfect score refused. The per-signal breakdown below
+            keeps the arithmetic visible. */}
         <p aria-hidden className="mt-2 text-[13px] text-vistara-muted">
-          / {SCORE_MAX}
+          {thinByCoverage
+            ? `not scored yet · ${MIN_STREAMS_TO_SCORE} signals needed`
+            : `/ ${SCORE_MAX}`}
         </p>
         <p className="sr-only">
-          Vistara score {formatScore(profile.vistaraScore)} out of {SCORE_MAX}.
+          {thinByCoverage
+            ? `Not scored yet: ${signalCount} of ${BEHAVIOR_ORDER.length} signals observed, and the engine needs ${MIN_STREAMS_TO_SCORE}.`
+            : `Vistara score ${formatScore(profile.vistaraScore)} out of ${SCORE_MAX}.`}
         </p>
 
         {/* Tier colour carries the glyph and the label with it, never on its
@@ -877,9 +891,9 @@ export default function LiveScorePage() {
               <>
                 Fewer than {MIN_STREAMS_TO_SCORE} of {BEHAVIOR_ORDER.length}{" "}
                 signals were observed, which is too little to claim a
-                cross-domain rhythm exists. Share more signals to build a
-                complete picture — the score above is shown for transparency and
-                is not lent against.
+                cross-domain rhythm exists, so no score is given yet. Share more
+                signals to build a complete picture; what each signal you did
+                share contributes is still shown below.
               </>
             ) : (
               <>
@@ -1226,7 +1240,31 @@ export default function LiveScorePage() {
             />
           </div>
 
-          {actions.length === 0 ? (
+          {actions.length === 0 && thinByCoverage ? (
+            <Card>
+              {/* The engine prices actions in points, and on a gated file with
+                  strong signals adding one can be priced at nothing — but what
+                  this file lacks is a signal, not points. Name the ones that
+                  could still be shared; the cold-start rule rules some out. */}
+              <p className="text-sm leading-relaxed text-vistara-muted">
+                Points are not what this file is short of: another observed
+                signal is.
+                {shareable.length > 0 ? (
+                  <>
+                    {" "}
+                    Share{" "}
+                    {shareable.length === 1 ? "" : "any of "}
+                    <span className="text-vistara-text">
+                      {shareable
+                        .map((source) => BEHAVIOR_META[source].short)
+                        .join(", ")}
+                    </span>
+                    , and re-score once it has a few cycles on file.
+                  </>
+                ) : null}
+              </p>
+            </Card>
+          ) : actions.length === 0 ? (
             <Card>
               <p className="text-sm leading-relaxed text-vistara-muted">
                 No single change is worth enough points yet to be worth naming.

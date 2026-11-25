@@ -10,8 +10,10 @@ import {
   COLOR_MAP,
   DEMO_CUSTOMERS_BY_ARCHETYPE,
   OBSERVATION_MONTHS,
+  MIN_STREAMS_TO_SCORE,
   OCCUPATION_META,
   SCORE_MAX,
+  SCORE_MIN,
   bandEntry,
   formatScore,
   type BehaviorSource,
@@ -278,12 +280,19 @@ function DemoCard({ profile }: { profile: TemporalProfile }) {
   const { customer, tier, vistaraScore } = profile;
   const ink = COLOR_MAP[tier].color;
   const strength = topStrengthLine(profile);
+  // THIN_FILE by the data gate has no score to print — the scorecard this card
+  // opens says "not scored yet", and so does the card.
+  const scored = profile.scoredSources.length >= MIN_STREAMS_TO_SCORE;
 
   // Stated once and used twice: `width` is what the bar measures, and
   // `--bar-width` is the target the fill animation travels to. They must be the
   // same value — see the note on `.score-bar-fill` in globals.css for what breaks
   // if the plain width is dropped in favour of the custom property alone.
-  const barWidth = `${((vistaraScore / SCORE_MAX) * 100).toFixed(1)}%`;
+  // Measured over SCORE_MIN–SCORE_MAX, the scale the scorecard's gauge draws, so
+  // a 520 sits at the same 37% on both rather than at 58% here.
+  const barWidth = scored
+    ? `${(((vistaraScore - SCORE_MIN) / (SCORE_MAX - SCORE_MIN)) * 100).toFixed(1)}%`
+    : "0%";
 
   return (
     <Link
@@ -322,9 +331,11 @@ function DemoCard({ profile }: { profile: TemporalProfile }) {
 
         <p className="tabular mt-3 flex items-baseline gap-1">
           <span className="text-2xl font-black text-vistara-text">
-            {formatScore(vistaraScore)}
+            {scored ? formatScore(vistaraScore) : "—"}
           </span>
-          <span className="text-sm text-vistara-muted">/ {SCORE_MAX}</span>
+          <span className="text-sm text-vistara-muted">
+            {scored ? `/ ${SCORE_MAX}` : "not scored yet"}
+          </span>
         </p>
 
         {/* Already cut to length above; `truncate` is the backstop for a viewport

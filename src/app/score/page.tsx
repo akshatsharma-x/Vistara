@@ -895,6 +895,11 @@ export default function ScorePage({
   // must never disagree on screen about whether an exception could apply.
   const seasonalEligible = isSeasonalOccupation(customer.occupation);
   const isThinFile = profile.tier === "THIN_FILE";
+  // THIN_FILE by the data gate rather than by the score. There is no score to
+  // show — see ScoreGauge's `scored` — and points are not what moves the file:
+  // another observed signal is.
+  const gated = profile.scoredSources.length < MIN_STREAMS_TO_SCORE;
+  const signalsNeeded = MIN_STREAMS_TO_SCORE - profile.scoredSources.length;
   const target = nextTierTarget(profile.tier);
 
   const scorableIndices = metrics
@@ -966,7 +971,11 @@ export default function ScorePage({
         <Card>
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
             <div className="min-w-0">
-              <ScoreGauge score={profile.vistaraScore} tier={profile.tier} />
+              <ScoreGauge
+                score={profile.vistaraScore}
+                tier={profile.tier}
+                scored={!gated}
+              />
 
               <p className="mt-6 max-w-prose border-t border-vistara-border pt-5 text-[14px] leading-relaxed text-vistara-text">
                 {isThinFile &&
@@ -993,7 +1002,15 @@ export default function ScorePage({
                     Seasonal exception applied and disclosed
                   </li>
                 ) : null}
-                {target === undefined ? (
+                {gated ? (
+                  <li>
+                    <span className="tabular text-vistara-text">
+                      {signalsNeeded}
+                    </span>{" "}
+                    more {signalsNeeded === 1 ? "signal" : "signals"} to a scored
+                    result
+                  </li>
+                ) : target === undefined ? (
                   <li>Top band — no higher tier to reach</li>
                 ) : (
                   <li>
