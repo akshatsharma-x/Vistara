@@ -54,6 +54,7 @@ import {
 } from "@/lib/constants";
 import { formatINR } from "@/lib/format";
 import { PROCESSING_MS, useVistara } from "@/lib/hooks/useVistara";
+import { defaultStreamAvailability } from "@/lib/synthetic-data";
 import type { BehaviorSource, Occupation } from "@/lib/types";
 import { Button, Card, SectionHeading } from "@/components/ui";
 
@@ -782,11 +783,13 @@ function ToggleSwitch({
   checked,
   label,
   onChange,
+  disabled = false,
 }: {
   id: string;
   checked: boolean;
   label: string;
   onChange: (next: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
     <button
@@ -795,9 +798,10 @@ function ToggleSwitch({
       role="switch"
       aria-checked={checked}
       aria-label={label}
+      disabled={disabled}
       onClick={() => onChange(!checked)}
       className={[
-        "relative h-6 w-11 shrink-0 rounded-full border transition-colors",
+        "relative h-6 w-11 shrink-0 rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-45",
         // 24 × 44 is a thumb's width and half its height. The pill itself cannot
         // simply grow — `rounded-full` on a 44px box is a circle, not a switch —
         // so the hit area is extended past the paint with a transparent
@@ -866,12 +870,19 @@ function Notice({
 function SourceCard({
   source,
   consented,
+  unavailable,
   explained,
   onConsentChange,
   onExplainToggle,
 }: {
   source: BehaviorSource;
   consented: boolean;
+  /**
+   * Why this signal cannot exist yet for this applicant, or undefined if it
+   * can. Set by the same cold-start rule the engine applies, so the switch
+   * cannot promise a signal the scorecard will then report as not observed.
+   */
+  unavailable?: string;
   explained: boolean;
   onConsentChange: (next: boolean) => void;
   onExplainToggle: () => void;
@@ -879,6 +890,7 @@ function SourceCard({
   const meta = BEHAVIOR_META[source];
   const copy = SOURCE_COPY[source];
   const panelId = `live-source-${source}-why`;
+  const noteId = `live-source-${source}-unavailable`;
 
   return (
     <Card>
@@ -897,6 +909,14 @@ function SourceCard({
           <p className="mt-1 text-sm leading-relaxed text-vistara-muted">
             {copy.description}
           </p>
+          {unavailable ? (
+            <p
+              id={noteId}
+              className="mt-1.5 text-[13px] leading-relaxed text-vistara-amber"
+            >
+              {unavailable}
+            </p>
+          ) : null}
 
           <button
             type="button"
@@ -937,8 +957,13 @@ function SourceCard({
 
         <ToggleSwitch
           id={`live-consent-${source}`}
-          checked={consented}
-          label={`Share ${meta.label}`}
+          checked={consented && !unavailable}
+          label={
+            unavailable
+              ? `${meta.label} — not available yet`
+              : `Share ${meta.label}`
+          }
+          disabled={Boolean(unavailable)}
           onChange={onConsentChange}
         />
       </div>
@@ -1379,7 +1404,25 @@ export default function ApplyLivePage() {
     ]);
 
   const step1Valid = Object.keys(errors).length === 0;
-  const step2Valid = consentedSources.length >= MIN_CONSENTED_SOURCES;
+
+  /**
+   * The engine's own cold-start rule, read off Step 1. A gig worker or farmer
+   * under 25 has no dealer-recorded service history to share, and useVistara
+   * drops the signal whatever the switch says — so the count, the gate and the
+   * processing screen use the sources that can actually be read, not the ones
+   * ticked. Null until age and occupation are both valid.
+   */
+  const availability = useMemo(
+    () =>
+      age !== null && profile.occupation !== ""
+        ? defaultStreamAvailability({ age, occupation: profile.occupation })
+        : null,
+    [age, profile.occupation],
+  );
+  const usableSources = consentedSources.filter(
+    (source) => availability === null || availability[source],
+  );
+  const step2Valid = usableSources.length >= MIN_CONSENTED_SOURCES;
   const step3Valid = archetypeAnswers.every((answer) => answer >= 0);
   const canAdvance =
     step === 1 ? step1Valid : step === 2 ? step2Valid : step3Valid;
@@ -1491,7 +1534,7 @@ export default function ApplyLivePage() {
           second submission against a profile that is already being built. */}
       {isProcessing ? (
         <ProcessingPanel
-          consented={consentedSources}
+          consented={usableSources}
           reduced={reducedMotion.current}
         />
       ) : (
@@ -1737,6 +1780,13 @@ export default function ApplyLivePage() {
                       key={source}
                       source={source}
                       consented={consentedSources.indexOf(source) !== -1}
+                      unavailable={
+                        availability === null || availability[source]
+                          ? undefined
+                          : source === "vehicle_service"
+                            ? "No service history to read yet. Under 25 in your line of work, this is most likely your first vehicle, so this signal starts with its first dealer-recorded service."
+                            : "No history on file for this signal yet."
+                      }
                       explained={explained[source]}
                       onConsentChange={(next) => setConsent(source, next)}
                       onExplainToggle={() => toggleExplanation(source)}
@@ -1757,9 +1807,9 @@ export default function ApplyLivePage() {
                 >
                   {!step2Valid ? (
                     `Select at least ${MIN_CONSENTED_SOURCES} signals for a meaningful score.`
-                  ) : consentedSources.length < MIN_STREAMS_TO_SCORE ? (
+                  ) : usableSources.length < MIN_STREAMS_TO_SCORE ? (
                     <>
-                      {consentedSources.length} of {BEHAVIOR_ORDER.length} shared.
+                      {usableSources.length} of {BEHAVIOR_ORDER.length} shared.
                       The engine wants {MIN_STREAMS_TO_SCORE} before it will claim
                       a cross-domain rhythm exists — below that your file is
                       reported as thin on evidence, said plainly on the scorecard
@@ -1767,7 +1817,7 @@ export default function ApplyLivePage() {
                     </>
                   ) : (
                     <>
-                      {consentedSources.length} of {BEHAVIOR_ORDER.length} shared
+                      {usableSources.length} of {BEHAVIOR_ORDER.length} shared
                       — enough for a cross-domain reading. Absent signals are left
                       out of the weighting, never guessed at.
                     </>
