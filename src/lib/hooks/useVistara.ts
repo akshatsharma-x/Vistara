@@ -181,25 +181,21 @@ export function archetypeFromAnswers(
  *  - Two different applicants still get different histories, because their
  *    answers differ. That was the only property `Date.now()` was buying.
  *
- * Consent is normalised through BEHAVIOR_ORDER so that ticking the same boxes in
- * a different order is the same input, not a different one.
+ * ONLY THE NAME AND THE ANSWERS. The name stands in for the identity a real
+ * lookup would key on (a PAN, a phone number); the answers stand in for the
+ * behaviour that lookup would find. Nothing else the form collects may reach
+ * the seed, because the form promises it is not scored: income, the bureau
+ * score and occupation are context, and putting them in the seed re-rolled
+ * every timestamp, so moving the income slider moved the score across tiers.
+ * Consent stays out for the same reason: each source draws from its own
+ * `${seed}:${source}` stream, so sharing FASTag adds a strip without redrawing
+ * the other four. Age reaches the profile through the cold-start rule only.
  */
 function seedFor(input: VistaraInput): number {
-  const c = input.customer;
-  const consent = BEHAVIOR_ORDER.filter(
-    (source) => input.consentedSources.indexOf(source) !== -1,
-  ).join(",");
-
   return hashSeed(
     [
-      c.name.trim().toLowerCase(),
-      c.age,
-      c.city.trim().toLowerCase(),
-      c.occupation,
-      c.monthlyIncome,
-      c.hasCibilScore ? (c.cibilScore ?? "unknown") : "none",
+      input.customer.name.trim().toLowerCase(),
       input.archetypeAnswers.join(""),
-      consent,
     ].join("|"),
   );
 }

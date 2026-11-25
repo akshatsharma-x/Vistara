@@ -1353,9 +1353,8 @@ export default function ApplyLivePage() {
   /**
    * Consent is rebuilt from BEHAVIOR_ORDER on every change, so the array in
    * state is the canonical list rather than a log of the order things were
-   * clicked in. `seedFor` in useVistara already normalises through the same
-   * list, so this changes no score — it just means the state and the seed agree
-   * about what "the same choices" means.
+   * clicked in. Consent is not part of `seedFor` in useVistara, so this changes
+   * no timestamp — it only keeps the stored list in one canonical order.
    */
   const setConsent = (source: BehaviorSource, next: boolean) =>
     setConsentedSources((prev) =>
