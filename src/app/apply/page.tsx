@@ -1225,8 +1225,14 @@ export default function ApplyPage() {
               </Button>
             ) : null}
 
+            {/* Enabled on step 1 so a submit can reveal untouched fields'
+                errors — see the same note in /apply/live. */}
             {step < 3 ? (
-              <Button type="submit" size="md" disabled={!canAdvance}>
+              <Button
+                type="submit"
+                size="md"
+                disabled={step !== 1 && !canAdvance}
+              >
                 {step === 1 ? "Continue to consent" : "Continue to review"}
               </Button>
             ) : (

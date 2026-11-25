@@ -1346,7 +1346,9 @@ export default function ApplyLivePage() {
       next.name = `Keep it under ${MAX_NAME_LENGTH} characters.`;
 
     if (profile.age.trim().length === 0) next.age = "Your age is required.";
-    else if (age === null || age < MIN_AGE || age > MAX_AGE)
+    else if (age === null)
+      next.age = `Enter your age in whole years, ${MIN_AGE} to ${MAX_AGE}.`;
+    else if (age < MIN_AGE || age > MAX_AGE)
       next.age = `Must be between ${MIN_AGE} and ${MAX_AGE}`;
 
     if (city.length === 0) next.city = "Your city or district is required.";
@@ -1879,10 +1881,15 @@ export default function ApplyLivePage() {
               </Button>
             ) : null}
 
+            {/* Never disabled on step 1: a disabled submit swallows the click
+                and the Enter key alike, so handleSubmit's forced errors could
+                never run and a field nobody touched — an occupation never
+                opened — was never flagged. Steps 2 and 3 state their gate on
+                screen, so there the disabled state explains itself. */}
             <Button
               type="submit"
               size="md"
-              disabled={!canAdvance}
+              disabled={step !== 1 && !canAdvance}
               className="ml-auto"
             >
               {step === 3 ? "Build My Profile →" : "Continue →"}
