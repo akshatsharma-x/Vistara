@@ -20,7 +20,11 @@ import {
   StatTile,
   TierBadge,
 } from "@/components/ui";
-import { bandEntry, isSeasonalOccupation } from "@/lib/consistency";
+import {
+  EMI_BUFFER_DAYS,
+  bandEntry,
+  isSeasonalOccupation,
+} from "@/lib/consistency";
 import {
   ARCHETYPE_META,
   BEHAVIOR_META,
@@ -639,7 +643,16 @@ function LoanOffer({ profile }: { profile: TemporalProfile }) {
   );
   const incomeShare = (emi / Math.max(1, customer.monthlyIncome)) * 100;
   const archetype = ARCHETYPE_META[profile.financialArchetype];
-  const firstDebit = addMonthsUtc(REFERENCE_DATE, 1);
+  // The recommended day in the month after scoring — not a fixed date, which
+  // told every applicant their first instalment fell on the 1st whatever day
+  // the card recommended beside it.
+  const firstDebit = new Date(
+    Date.UTC(
+      REFERENCE_DATE.getUTCFullYear(),
+      REFERENCE_DATE.getUTCMonth() + 1,
+      profile.recommendedEmiDate,
+    ),
+  );
 
   return (
     <Card
@@ -690,18 +703,18 @@ function LoanOffer({ profile }: { profile: TemporalProfile }) {
           <div className="min-w-0 flex-1">
             <p className="max-w-prose text-[14px] leading-relaxed text-vistara-text">
               Your instalment falls on the{" "}
-              {ordinalDay(profile.recommendedEmiDate)} because that is when your
-              money reliably arrives.
+              {ordinalDay(profile.recommendedEmiDate)}, {EMI_BUFFER_DAYS} days
+              after the date your money reliably lands.
             </p>
             <p className="mt-2 max-w-prose text-[13px] leading-relaxed text-vistara-muted">
               The engine takes the day of the month your monthly rhythms
               actually land on &mdash; measured as circular concentration, so a
               recharge cycle that drifts backwards through the calendar is not
               mistaken for an income date &mdash; and places the debit a short
-              buffer after it. A 1st-of-month due date would fight your cash
-              flow: it debits before the rhythm delivers, and the first bounce
-              would be an artefact of the schedule rather than of your ability to
-              pay.
+              buffer after it. A due date picked off the calendar instead would
+              fight your cash flow: it can debit before the rhythm delivers, and
+              the first bounce would be an artefact of the schedule rather than
+              of your ability to pay.
             </p>
           </div>
         </div>

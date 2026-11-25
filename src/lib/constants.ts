@@ -210,7 +210,7 @@ export const ARCHETYPE_META: Record<
     label: "Planner",
     blurb:
       "Acts ahead of every deadline. Tight rhythm in every domain observed.",
-    emiGuidance: "Any due date works. Auto-debit on the salary-credit date.",
+    emiGuidance: "Any due date works. Auto-debit two days after the salary credit.",
   },
   REACTOR: {
     label: "Reactor",
@@ -222,7 +222,7 @@ export const ARCHETYPE_META: Record<
     label: "Avoider",
     blurb:
       "Long gaps and late recovery. Rhythm breaks under pressure and stays broken.",
-    emiGuidance: "Small ticket, weekly nudges, EMI on the income date itself.",
+    emiGuidance: "Small ticket, weekly nudges, EMI two days after income lands.",
   },
   ADAPTER: {
     label: "Adapter",

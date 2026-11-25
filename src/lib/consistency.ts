@@ -172,7 +172,7 @@ const AVOIDER_RECOVERY_RATIO_MIN = 0.5;
 /** Mean Gregorian month, used as the period of the day-of-month circle. */
 const CIRCULAR_MONTH_DAYS = 30.44;
 /** Days after the inferred income date on which we place the EMI. */
-const EMI_BUFFER_DAYS = 2;
+export const EMI_BUFFER_DAYS = 2;
 /** Latest day-of-month an EMI may fall on, so the date exists in February. */
 const EMI_MAX_DAY = 28;
 const EMI_MIN_DAY = 1;
