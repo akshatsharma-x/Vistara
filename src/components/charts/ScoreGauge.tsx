@@ -112,7 +112,13 @@ export function ScoreGauge({
       </div>
 
       <p className="mt-2 max-w-prose text-[13px] leading-relaxed text-vistara-muted">
-        {presentation.description}. {presentation.lendingAction}.
+        {/* THIN_FILE's tagline describes the data gate. A Thin File that was
+            scored — enough signals, too little rhythm — needs its own, or it
+            reads "not enough observed rhythm to score" over a printed score. */}
+        {tier === "THIN_FILE" && scored
+          ? "Rhythm observed and scored below the Developing floor"
+          : presentation.description}
+        . {presentation.lendingAction}.
       </p>
 
       <div

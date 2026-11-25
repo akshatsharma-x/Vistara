@@ -159,19 +159,39 @@ function pickDefaultProfile(): TemporalProfile {
  * Plain-language tier copy — read aloud to the customer, not the officer
  * ================================================================== */
 
-const TIER_SENTENCE: Record<Tier, string> = {
-  PRIME:
-    "Every rhythm we can see repeats on time, and it repeats across unrelated parts of your life — so this file prices at the standard rate with no guarantor and no bureau history.",
-  NEAR_PRIME:
-    "Your rhythm is dependable in most domains and still settling in one. That is enough to lend against today, with a larger ticket once six instalments land on time.",
-  DEVELOPING:
-    "Your habits are regular in places and drifting in others. We can start smaller and shorter, with the due date placed where your money actually arrives rather than where the calendar says.",
-  // Data-gate case only: scoredSources.length < MIN_STREAMS_TO_SCORE.
-  // Low-score THIN_FILE (sufficient signals, score < DEVELOPING threshold)
-  // uses a computed sentence at the render site — see below.
-  THIN_FILE:
-    "We have not yet observed enough steady rhythm to price a loan. That is a limit on what we can see, not a verdict on you — and it is fixable in one quarter.",
-};
+/**
+ * One sentence per verdict, built from this file's own band counts. Written as
+ * fixed strings they were false for most of the cohort: "every rhythm we can see
+ * repeats on time" sat on all three Prime files, each with a Moderate rhythm on
+ * the legend below it, and "no bureau history" on one with a CIBIL score.
+ */
+function tierSentence(profile: TemporalProfile): string {
+  const scored = profile.metrics.filter((metric) => metric.scorable);
+  const steady = scored.filter(
+    (metric) => metric.band === "exceptional" || metric.band === "strong",
+  ).length;
+  const total = scored.length;
+  const noGuarantor = profile.customer.hasCibilScore
+    ? "with no guarantor"
+    : "with no guarantor and no bureau history";
+
+  switch (profile.tier) {
+    case "PRIME":
+      return steady === total
+        ? `Every rhythm we can see sits in the top two bands, across unrelated parts of your life — so this file prices at the standard rate ${noGuarantor}.`
+        : `${steady} of the ${total} rhythms we can see sit in the top two bands, and the pattern holds across unrelated parts of your life — so this file prices at the standard rate ${noGuarantor}.`;
+    case "NEAR_PRIME":
+      return steady === total
+        ? "Every rhythm we can see sits in the top two bands, just short of Prime overall. That is enough to lend against today, with a larger ticket once six instalments land on time."
+        : `${steady} of the ${total} rhythms we can see sit in the top two bands and the rest are still settling. That is enough to lend against today, with a larger ticket once six instalments land on time.`;
+    case "DEVELOPING":
+      return "Your habits are regular in places and drifting in others. We can start smaller and shorter, with the due date placed where your money actually arrives rather than where the calendar says.";
+    case "THIN_FILE":
+      return total < MIN_STREAMS_TO_SCORE
+        ? `We have not yet observed enough rhythm to score, let alone price a loan. That is a limit on what we can see, not a verdict on you — and a ${RESCORE_MONTHS}-month rhythm-building path is the way through it.`
+        : `Your rhythm was observed across ${total} of ${BEHAVIOR_ORDER.length} signals and scored below the floor for standard lending terms. A focused ${RESCORE_MONTHS}-month rhythm-building path, with a re-score at the end of it, is the way into the Developing tier.`;
+  }
+}
 
 /* ================================================================== *
  * Weakness ranking — the two sources the improvement path is built on
@@ -191,8 +211,9 @@ interface Weakness {
    *
    * Present sources: appliedWeight x (100 - index)/100 x 0.75 x 600 — the exact
    * inverse of the scorecard's own per-source points, so the two reconcile.
-   * Absent sources: the full model weight, because the engine is earning none of
-   * it. Labelled "up to" wherever it is shown.
+   * Absent sources: the full model weight. Used only to rank the weaknesses and
+   * never printed, because renormalisation means adding a signal does not earn
+   * that weight back point for point.
    */
   unrealisedPoints: number;
 }
@@ -591,23 +612,22 @@ function WeaknessBlock({
       <p className="mt-2 max-w-prose text-[13px] leading-relaxed text-vistara-muted">
         {weakness.present ? (
           <>
-            Up to{" "}
             <span className="tabular text-vistara-text">
               {Math.round(weakness.unrealisedPoints)}
             </span>{" "}
-            points of the 300&ndash;900 range sit behind this one rhythm and are
-            not being earned yet &mdash; that is its applied weight multiplied by
-            the distance from a perfect index, on exactly the arithmetic the
-            scorecard above uses.
+            points of this rhythm&rsquo;s own share of the 300&ndash;900 range
+            are not being earned yet &mdash; its applied weight multiplied by the
+            distance from a perfect index, on exactly the arithmetic the
+            scorecard above uses. Steadying it also lifts cross-domain coherence,
+            which is scored on top of that share.
           </>
         ) : (
           <>
             This signal is missing entirely, so the engine renormalised its
-            weight onto the rhythms it could see. Up to{" "}
-            <span className="tabular text-vistara-text">
-              {Math.round(weakness.unrealisedPoints)}
-            </span>{" "}
-            points of the range are unreachable until there is something to read.{" "}
+            weight onto the rhythms it could see and charged nothing for the
+            absence. Adding it moves the score by how its rhythm compares with
+            the ones already on file, so it is worth most where those are
+            weakest.{" "}
             {coverage.detail}
           </>
         )}
@@ -621,9 +641,9 @@ function WeaknessBlock({
         </div>
       ) : (
         <p className="mt-3 text-[13px] leading-relaxed text-vistara-muted">
-          The engine priced every change to this rhythm below five points, so
-          there is nothing worth asking you to change here. Keep it exactly as it
-          is.
+          {weakness.present
+            ? "No change to this rhythm made the engine’s shortlist of the best-priced actions for this file; the ones it did price are listed in this section."
+            : "Start by sharing it, as described above. The engine prices the change once there is a rhythm to read."}
         </p>
       )}
     </div>
@@ -795,7 +815,7 @@ function RhythmBuildingPath({ profile }: { profile: TemporalProfile }) {
               </span>{" "}
               {profile.scoredSources.length === 1 ? "rhythm" : "rhythms"} we can
               see cleared the evidence bar and were scored in full &mdash; they
-              are simply irregular, with long absences rather than late arrivals.
+              are simply irregular.
               {profile.missingSources.length > 0 ? (
                 <>
                   {" "}
@@ -992,10 +1012,7 @@ export default function ScorePage({
               />
 
               <p className="mt-6 max-w-prose border-t border-vistara-border pt-5 text-[14px] leading-relaxed text-vistara-text">
-                {isThinFile &&
-                profile.scoredSources.length >= MIN_STREAMS_TO_SCORE
-                  ? "Your rhythm has been observed across most signals — it is developing but below the minimum threshold for standard lending terms. A focused rhythm-building path over the next six months should bring you into the Developing tier."
-                  : TIER_SENTENCE[profile.tier]}
+                {tierSentence(profile)}
               </p>
 
               <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-[12px] text-vistara-muted">
