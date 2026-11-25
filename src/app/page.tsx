@@ -82,7 +82,7 @@ const PROBLEM_STATS: {
     label: "adults in India with no credit score",
   },
   {
-    figure: "35%",
+    figure: "35–40%",
     ink: "text-vistara-amber",
     label: "NBFC applicants rejected for thin files",
   },
@@ -101,12 +101,12 @@ const STEPS: { step: string; title: string; body: string }[] = [
   {
     step: "01",
     title: "Share your rhythms",
-    body: `Connect 2–${BEHAVIOR_ORDER.length} data sources — your vehicle service record, UPI patterns, utility bills. We read when, not how much.`,
+    body: `Connect ${MIN_STREAMS_TO_SCORE}–${BEHAVIOR_ORDER.length} data sources — your vehicle service record, UPI patterns, utility bills. We read when, not how much.`,
   },
   {
     step: "02",
     title: "We measure consistency",
-    body: "Our engine calculates the standard deviation of your timing patterns across every source. Consistent people repay consistently.",
+    body: "Our engine calculates the standard deviation of your timing patterns across every source. The bet: people who keep steady rhythms keep steady repayments.",
   },
   {
     step: "03",
@@ -404,8 +404,8 @@ export default function HomePage() {
 
           <div className="mt-10 flex flex-wrap justify-center gap-6 motion-safe:animate-fade-up motion-safe:[animation-delay:300ms]">
             {[
-              "AA Framework Compliant",
-              "DPDP Act Aligned",
+              "Designed for the AA Framework",
+              "Consent-first, timestamps only",
               "Explainable by Design",
             ].map((badge) => (
               <span
@@ -581,7 +581,7 @@ export default function HomePage() {
           <SectionHeading
             as="h2"
             size="page"
-            title={`See Vistara score ${DEMO_GRID.length} real profiles`}
+            title={`See Vistara score ${DEMO_GRID.length} sample profiles`}
             description={`Each profile was built from ${OBSERVATION_MONTHS} months of synthetic history, generated from a fixed seed against a frozen reference date. Click any card to see the full scorecard.`}
           />
 

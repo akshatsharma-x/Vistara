@@ -24,10 +24,12 @@ export const metadata: Metadata = {
     "Vistara measures how consistently you live rather than what you earned. The signals, the TVS moat, the behavioural science and the stack.",
 };
 
+// Background reading only. Neither book tests payment timing against repayment,
+// so neither is cited as evidence for the hypothesis this page states — and no
+// study is cited for it, because this prototype has not tested it.
 const REFERENCES = [
   "Duhigg, C. (2012). The Power of Habit. Random House.",
   "Thaler, R. & Sunstein, C. (2008). Nudge. Yale University Press.",
-  "Federal Reserve Board (2019). Report on the Economic Well-Being of U.S. Households — payment timing and default correlation.",
 ];
 
 export default function AboutPage() {
@@ -41,9 +43,11 @@ export default function AboutPage() {
 
         <p className="mt-4 text-[14px] leading-relaxed text-vistara-muted">
           Traditional credit scores ask: what did you do? Vistara asks: how
-          consistently do you do everything? Financial reliability is a
-          behavioural trait. People who live consistently — in all domains —
-          repay consistently.
+          consistently do you do everything? The hypothesis is that financial
+          reliability is a behavioural trait — that people who keep steady
+          rhythms across unrelated parts of life repay steadily too. This
+          prototype runs on synthetic data and has not tested that against
+          repayment outcomes; doing so is the first job of a pilot.
         </p>
 
         <ul className="mt-6 space-y-3">
@@ -89,7 +93,12 @@ export default function AboutPage() {
 
       {/* ── 3 · The science ───────────────────────────────────────────── */}
       <section className="mt-12">
-        <SectionHeading as="h2" title="The science" />
+        <SectionHeading as="h2" title="Background reading" />
+
+        <p className="mt-4 text-[14px] leading-relaxed text-vistara-muted">
+          On habit formation and choice architecture. Neither book tests payment
+          timing against loan repayment; that link is the hypothesis above.
+        </p>
 
         <div className="mt-4 space-y-1.5">
           {REFERENCES.map((reference) => (

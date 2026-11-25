@@ -1758,7 +1758,7 @@ export default function ApplyLivePage() {
 
                 <div className="grid gap-2">
                   <Notice tone="accent">
-                    AA Framework compliant · DPDP Act aligned · Revoke access
+                    Designed for the AA Framework · Timestamps only · Revoke access
                     anytime
                   </Notice>
 
